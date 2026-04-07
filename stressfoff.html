@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>OBLITERATE</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #07070d;
+  font-family: 'Georgia', serif;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #07070d;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── TOP BAR ── */
+#topBar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: clamp(10px, 2vw, 18px) clamp(14px, 3vw, 28px);
+  background: linear-gradient(to bottom, rgba(7,7,13,0.95) 60%, transparent);
+  pointer-events: none;
+}
+
+#title {
+  font-family: 'Courier New', monospace;
+  font-size: clamp(11px, 1.5vw, 13px);
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.18);
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+}
+
+#langToggle {
+  display: flex;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.03);
+  pointer-events: all;
+}
+.langBtn {
+  padding: 5px 14px;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.28);
+  transition: all 0.15s;
+  text-transform: uppercase;
+  font-family: 'Courier New', monospace;
+}
+.langBtn.active { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.85); }
+
+/* ── CANVAS ── */
+#canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  display: block;
+  touch-action: none;
+}
+
+/* ── BOTTOM PANEL ── */
+#panel {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 10;
+  padding: clamp(10px, 2vw, 20px) clamp(14px, 3vw, 28px);
+  padding-bottom: calc(clamp(10px, 2vw, 20px) + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, rgba(7,7,13,0.97) 55%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* mode buttons */
+#modeBar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.modeBtn {
+  padding: 4px clamp(9px, 1.8vw, 14px);
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: transparent;
+  color: rgba(255,255,255,0.32);
+  font-size: clamp(9px, 1.3vw, 11px);
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.15s;
+  font-family: 'Courier New', monospace;
+}
+.modeBtn.active {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.88);
+}
+.modeBtn:hover { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); }
+
+/* input row */
+#inputRow {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  width: 100%;
+}
+
+#textInput {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: clamp(13px, 2vw, 17px);
+  padding: 9px 13px;
+  outline: none;
+  font-family: 'Georgia', serif;
+  letter-spacing: 1.2px;
+  resize: none;
+  overflow-y: auto;
+  max-height: clamp(80px, 15vh, 140px);
+  line-height: 1.5;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+#textInput::placeholder { color: rgba(255,255,255,0.18); }
+#textInput:focus { border-color: rgba(255,100,80,0.45); }
+
+#btnCol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.btn {
+  padding: 8px clamp(10px, 2vw, 18px);
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.13);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.65);
+  font-size: clamp(9px, 1.3vw, 11px);
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-family: 'Courier New', monospace;
+}
+.btn:hover { background: rgba(255,255,255,0.09); color: #fff; }
+.btn.danger {
+  border-color: rgba(255,55,55,0.35);
+  background: rgba(255,30,30,0.06);
+  color: rgba(255,110,90,0.88);
+}
+.btn.danger:hover { background: rgba(255,30,30,0.16); color: #ff6b5b; }
+
+#hint {
+  font-size: clamp(8px, 1.2vw, 10px);
+  color: rgba(255,255,255,0.16);
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  font-family: 'Courier New', monospace;
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="canvas"></canvas>
+
+  <div id="topBar">
+    <div id="title">Obliterate</div>
+    <div id="langToggle">
+      <button class="langBtn active" data-lang="ko">한국어</button>
+      <button class="langBtn" data-lang="en">English</button>
+    </div>
+  </div>
+
+  <div id="panel">
+    <div id="modeBar"></div>
+    <div id="inputRow">
+      <textarea id="textInput" rows="2" spellcheck="false"></textarea>
+      <div id="btnCol">
+        <button class="btn" id="spawnBtn"></button>
+        <button class="btn danger" id="destroyBtn"></button>
+      </div>
+    </div>
+    <div id="hint"></div>
+  </div>
+</div>
+
+<script>
+const LANG = {
+  ko: {
+    modes: ['💥 폭발','🔥 연소','🌀 소멸','❄ 파쇄'],
+    placeholder: '파괴할 텍스트를 입력하세요\n여러 줄도 됩니다...',
+    spawn: '소환',
+    destroy: '전부 파괴',
+    hint: '마우스를 글자 위에 올리면 파괴됩니다',
+    defaultText: '스트레스여\n안녕',
+  },
+  en: {
+    modes: ['💥 Explode','🔥 Burn','🌀 Void','❄ Shatter'],
+    placeholder: 'Type something to obliterate...\nMultiple lines supported.',
+    spawn: 'Spawn',
+    destroy: 'Destroy All',
+    hint: 'Hover over letters to destroy them',
+    defaultText: 'GOODBYE\nSTRESS',
+  }
+};
+
+let lang = 'ko', mode = 'explode';
+const modeKeys = ['explode','burn','void','shatter'];
+
+function applyLang() {
+  const L = LANG[lang];
+  const bar = document.getElementById('modeBar');
+  bar.innerHTML = '';
+  modeKeys.forEach((k, i) => {
+    const b = document.createElement('button');
+    b.className = 'modeBtn' + (k === mode ? ' active' : '');
+    b.textContent = L.modes[i];
+    b.dataset.mode = k;
+    b.addEventListener('click', () => {
+      mode = k;
+      document.querySelectorAll('.modeBtn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+    });
+    bar.appendChild(b);
+  });
+  const inp = document.getElementById('textInput');
+  inp.placeholder = L.placeholder;
+  document.getElementById('spawnBtn').textContent = L.spawn;
+  document.getElementById('destroyBtn').textContent = L.destroy;
+  document.getElementById('hint').textContent = L.hint;
+}
+
+document.querySelectorAll('.langBtn').forEach(b => {
+  b.addEventListener('click', () => {
+    lang = b.dataset.lang;
+    document.querySelectorAll('.langBtn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    applyLang();
+    spawnText(LANG[lang].defaultText);
+  });
+});
+
+applyLang();
+
+/* ── CANVAS SETUP ── */
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let W, H, dpr;
+
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+resize();
+window.addEventListener('resize', () => { resize(); spawnText(lastText); });
+
+/* ── MOUSE / TOUCH ── */
+let mouse = { x: -9999, y: -9999 };
+function setMouse(e) {
+  const src = e.touches ? e.touches[0] : e;
+  mouse.x = src.clientX; mouse.y = src.clientY;
+}
+canvas.addEventListener('mousemove', setMouse);
+canvas.addEventListener('mouseleave', () => { mouse.x = -9999; mouse.y = -9999; });
+canvas.addEventListener('touchmove', e => { e.preventDefault(); setMouse(e); }, { passive: false });
+canvas.addEventListener('touchend', () => { mouse.x = -9999; mouse.y = -9999; });
+
+/* ── HELPERS ── */
+function measureChar(ch, font) {
+  ctx.save(); ctx.font = font;
+  const w = ctx.measureText(ch).width;
+  ctx.restore(); return w;
+}
+
+const COLORS = ['#ff6b5b','#ffb347','#ffe066','#a8edea','#88d8b0','#c9b1ff','#ff9ff3','#54a0ff','#ff6b81','#ffffff','#f093fb','#4facfe'];
+
+/* ── GLYPH ── */
+class Glyph {
+  constructor(ch, x, y, fs, color) {
+    this.ch = ch; this.x = x; this.y = y;
+    this.ox = x; this.oy = y;
+    this.fs = fs; this.color = color;
+    this.font = `${fs}px Georgia, serif`;
+    this.w = measureChar(ch, this.font);
+    this.alpha = 0; this.scale = 0.2;
+    this.alive = true; this.spawning = true; this.st = 0;
+    this.dead = false;
+    this.vx = 0; this.vy = 0; this.rot = 0; this.rotV = 0;
+  }
+  hover() {
+    const dx = mouse.x - this.x, dy = mouse.y - this.y;
+    return Math.abs(dx) < this.w/2 + 10 && Math.abs(dy) < this.fs/2 + 10;
+  }
+  kill() {
+    if (this.dead) return; this.dead = true; this.spawning = false;
+    const spd = 3 + Math.random()*7, a = Math.random()*Math.PI*2;
+    if (mode==='explode') { this.vx=Math.cos(a)*spd*1.6; this.vy=Math.sin(a)*spd*1.6-4; }
+    else if (mode==='burn') { this.vx=(Math.random()-.5)*2; this.vy=-(spd*.8+Math.random()*3); }
+    else if (mode==='void') { this.vx=(this.ox-W/2)*.025; this.vy=(this.oy-H/2)*.025; }
+    else { this.vx=Math.cos(a)*spd*1.6; this.vy=Math.sin(a)*spd*1.6; this.rotV=(Math.random()-.5)*.35; }
+    const n = mode==='burn' ? 14 : 9;
+    for (let i=0;i<n;i++) particles.push(new Particle(this.x, this.y, this.color, mode));
+  }
+  update() {
+    if (this.spawning) {
+      this.st += .08; this.alpha = Math.min(1, this.st); this.scale = Math.min(1, .2+this.st*1.3);
+      if (this.st > .95) this.spawning = false;
+    } else if (this.dead) {
+      if (mode==='void') { this.scale*=.87; this.alpha*=.87; this.vx*=.95; this.vy*=.95; }
+      else if (mode==='burn') { this.alpha-=.032; this.vx*=.98; this.scale=Math.max(0,this.scale-.018); }
+      else { this.vy+=.38; this.vx*=.98; this.alpha-=.02; this.rot+=this.rotV; }
+      this.x+=this.vx; this.y+=this.vy;
+      if (this.alpha<=0 || this.y>H+120 || this.x<-200 || this.x>W+200) this.alive=false;
+    } else { if (this.hover()) this.kill(); }
+  }
+  draw() {
+    if (!this.alive || this.alpha<=0) return;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0,this.alpha);
+    ctx.translate(this.x, this.y); ctx.rotate(this.rot); ctx.scale(this.scale, this.scale);
+    ctx.font = this.font; ctx.fillStyle = this.color;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (mode==='burn' && this.dead) { ctx.shadowColor='#ff4400'; ctx.shadowBlur=14; }
+    ctx.fillText(this.ch, 0, 0);
+    ctx.restore();
+  }
+}
+
+/* ── PARTICLE ── */
+class Particle {
+  constructor(x,y,color,mode) {
+    this.x=x; this.y=y; this.mode=mode;
+    const a=Math.random()*Math.PI*2, spd=2+Math.random()*6;
+    if (mode==='burn') { this.vx=(Math.random()-.5)*2.5; this.vy=-(2.5+Math.random()*5); this.sz=1.5+Math.random()*3; this.color=`hsl(${15+Math.random()*50},100%,${48+Math.random()*32}%)`; }
+    else { const m=mode==='shatter'?2:1; this.vx=Math.cos(a)*spd*m; this.vy=Math.sin(a)*spd*m-(mode==='explode'?2:0); this.sz=1.5+Math.random()*3.5; this.color=color; }
+    this.alpha=.85+Math.random()*.15; this.alive=true;
+  }
+  update() {
+    if (this.mode==='burn') { this.vy-=.07; this.vx*=.97; this.sz*=.955; }
+    else { this.vy+=.22; this.vx*=.97; }
+    this.x+=this.vx; this.y+=this.vy; this.alpha-=.023;
+    if (this.alpha<=0||this.sz<.25) this.alive=false;
+  }
+  draw() {
+    if (!this.alive) return;
+    ctx.save(); ctx.globalAlpha=this.alpha; ctx.fillStyle=this.color;
+    ctx.beginPath(); ctx.arc(this.x,this.y,this.sz,0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+}
+
+/* ── SPAWN TEXT (multiline) ── */
+let particles=[], glyphs=[], lastText=LANG[lang].defaultText;
+
+function spawnText(raw) {
+  lastText = (raw != null) ? raw : lastText;
+  glyphs=[]; particles=[]; window._textBox = null;
+  const lines = lastText.split('\n').filter(l => l.length > 0);
+  if (!lines.length) return;
+
+  const panelH = document.getElementById('panel').getBoundingClientRect().height;
+  const topPad = 56;
+  const availH = H - topPad - panelH - 32;
+  const boxPadX = Math.max(48, W * 0.12);
+  const availW = W - boxPadX * 2;
+
+  const maxCharsInLine = Math.max(...lines.map(l=>[...l].length));
+  const totalLines = lines.length;
+
+  let fs = Math.min(
+    Math.floor(availW / Math.max(maxCharsInLine * 0.62, 1)),
+    Math.floor(availH / (totalLines * 1.55)),
+    W < 500 ? 56 : 96
+  );
+  fs = Math.max(18, Math.min(fs, W < 500 ? 56 : 96));
+
+  const lineH = fs * 1.5;
+  const totalTextH = lines.length * lineH;
+
+  // Center of available area (between topbar and panel)
+  const centerY = topPad + availH / 2;
+  const startY = centerY - totalTextH / 2 + lineH / 2;
+
+  // Find max line width to draw the box
+  const font = `${fs}px Georgia, serif`;
+  let maxLineW = 0;
+  const lineWidths = lines.map(line => {
+    let w = 0;
+    [...line].forEach(c => { w += measureChar(c, font); });
+    if (w > maxLineW) maxLineW = w;
+    return w;
+  });
+
+  // Draw subtle bounding box on canvas (stored as metadata, drawn in loop)
+  window._textBox = {
+    x: W/2 - maxLineW/2 - fs*0.5,
+    y: startY - lineH/2 - fs*0.25,
+    w: maxLineW + fs,
+    h: totalTextH + fs*0.5,
+    alpha: 1
+  };
+
+  let globalIdx = 0;
+  lines.forEach((line, li) => {
+    const chars = [...line];
+    const cws = chars.map(c => measureChar(c, font));
+    const lineW = lineWidths[li];
+    // Center each line within the max width box
+    let cx = W/2 - lineW/2;
+    const baseY = startY + li * lineH;
+
+    chars.forEach((c, ci) => {
+      const gx = cx + cws[ci]/2;
+      const gy = baseY;
+      const g = new Glyph(c, gx, gy, fs, COLORS[globalIdx % COLORS.length]);
+      g.st = -(globalIdx * 0.06);
+      glyphs.push(g);
+      cx += cws[ci];
+      globalIdx++;
+    });
+  });
+}
+
+function destroyAll() {
+  // All glyphs die simultaneously
+  glyphs.forEach(g => g.kill());
+  if (window._textBox) window._textBox.alpha = 0;
+}
+
+document.getElementById('spawnBtn').addEventListener('click', () => {
+  spawnText(document.getElementById('textInput').value);
+});
+document.getElementById('destroyBtn').addEventListener('click', destroyAll);
+document.getElementById('textInput').addEventListener('keydown', e => {
+  if (e.key==='Enter' && (e.metaKey||e.ctrlKey)) { e.preventDefault(); spawnText(e.target.value); }
+});
+
+function drawTextBox() {}
+
+/* ── RENDER LOOP ── */
+function loop() {
+  ctx.fillStyle='rgba(7,7,13,0.22)';
+  ctx.fillRect(0,0,W,H);
+  drawTextBox();
+  particles = particles.filter(p=>p.alive);
+  particles.forEach(p=>{p.update();p.draw();});
+  glyphs.forEach(g=>{g.update();g.draw();});
+  glyphs = glyphs.filter(g=>g.alive||!g.dead);
+  requestAnimationFrame(loop);
+}
+
+spawnText(lastText);
+loop();
+</script>
+</body>
+</html>
