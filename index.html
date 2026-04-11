@@ -198,8 +198,50 @@ html, body {
   color: rgba(255,255,255,0.35);
   letter-spacing: 1.2px;
   white-space: nowrap;
-  pointer-events: none;
   user-select: none;
+}
+#nickname { pointer-events: none; }
+#onlineWrap {
+  position: relative;
+}
+#onlineCount {
+  cursor: pointer;
+  pointer-events: all;
+  transition: color 0.15s;
+}
+#onlineCount:hover { color: rgba(255,255,255,0.65); }
+#presenceDropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 160px;
+  background: rgba(10,10,18,0.97);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 6px 0;
+  z-index: 200;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+#presenceDropdown.open { display: block; }
+.presence-item {
+  padding: 5px 14px;
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.5);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.presence-item.me { color: rgba(255,180,100,0.85); }
+.presence-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: rgba(100,255,140,0.7);
+  flex-shrink: 0;
 }
 
 /* ── INSERT AFTER: multiplayer UI styles ── */
@@ -232,7 +274,10 @@ html, body {
   <div id="topBar">
     <div id="title">Obliterate</div>
     <div id="topMeta">
-      <span id="onlineCount"></span>
+      <div id="onlineWrap">
+        <span id="onlineCount"></span>
+        <div id="presenceDropdown"></div>
+      </div>
       <span id="nickname"></span>
     </div>
     <div id="langToggle">
@@ -610,12 +655,39 @@ function showNotification(nick, eventType) {
   });
 }
 
-// Step 4: Update online count display
+// Step 4: Update online count + presence dropdown
+let _presenceNicks = [];
+
 function updateOnlineCount(count) {
   const el = document.getElementById('onlineCount');
   if (!el) return;
-  el.textContent = lang === 'ko' ? `● ${count}명` : `● ${count} online`;
+  el.textContent = lang === 'ko' ? `● ${count}명 ▾` : `● ${count} online ▾`;
 }
+
+function renderPresenceDropdown() {
+  const dd = document.getElementById('presenceDropdown');
+  if (!dd) return;
+  dd.innerHTML = '';
+  _presenceNicks.forEach(nick => {
+    const div = document.createElement('div');
+    div.className = 'presence-item' + (nick === window._nickname ? ' me' : '');
+    const dot = document.createElement('span');
+    dot.className = 'presence-dot';
+    div.appendChild(dot);
+    div.appendChild(document.createTextNode(nick));
+    dd.appendChild(div);
+  });
+}
+
+document.getElementById('onlineCount').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('presenceDropdown').classList.toggle('open');
+  renderPresenceDropdown();
+});
+
+document.addEventListener('click', () => {
+  document.getElementById('presenceDropdown').classList.remove('open');
+});
 
 // Step 2: Supabase init — runs after CDN script loads
 function initSupabase() {
@@ -638,10 +710,19 @@ function initSupabase() {
       destroyAll();
       showNotification(payload.nickname, 'destroy_all');
     })
-    // Step 4: Presence sync → update online count
+    // Step 4: Presence sync → update online count + collect nicknames
     .on('presence', { event: 'sync' }, () => {
-      const count = Object.keys(room.presenceState()).length;
-      updateOnlineCount(count);
+      const state = room.presenceState();
+      const nicks = [];
+      Object.values(state).forEach(presences => {
+        presences.forEach(p => { if (p.nickname) nicks.push(p.nickname); });
+      });
+      // put self first
+      _presenceNicks = [window._nickname, ...nicks.filter(n => n !== window._nickname)];
+      updateOnlineCount(_presenceNicks.length);
+      if (document.getElementById('presenceDropdown').classList.contains('open')) {
+        renderPresenceDropdown();
+      }
     })
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
