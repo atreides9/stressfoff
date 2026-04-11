@@ -556,7 +556,17 @@ document.getElementById('destroyBtn').addEventListener('click', () => {
   }
 });
 document.getElementById('textInput').addEventListener('keydown', e => {
-  if (e.key==='Enter' && (e.metaKey||e.ctrlKey)) { e.preventDefault(); spawnText(e.target.value); }
+  if (e.key==='Enter' && !e.shiftKey) {
+    e.preventDefault();
+    const text = e.target.value;
+    spawnText(text);
+    if (window._room) {
+      window._room.send({
+        type: 'broadcast', event: 'spawn',
+        payload: { text, nickname: window._nickname, lang, mode }
+      });
+    }
+  }
 });
 
 /* ── RENDER LOOP ── */
