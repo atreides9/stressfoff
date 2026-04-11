@@ -373,6 +373,7 @@ const LANG = {
     thanosOff: '🔱 타노스 OFF',
     thanosLogOn: (nick) => `${nick}님이 타노스 모드를 켰습니다`,
     thanosLogOff: (nick) => `${nick}님이 타노스 모드를 껐습니다`,
+    thanosBlocked: (sec) => `🔱 타노스 남용 감지! ${sec}초 후 해제됩니다`,
   },
   en: {
     modes: ['💥 Explode','🔥 Burn','🌀 Void','❄ Shatter'],
@@ -385,6 +386,7 @@ const LANG = {
     thanosOff: '🔱 Thanos OFF',
     thanosLogOn: (nick) => `${nick} enabled Thanos mode`,
     thanosLogOff: (nick) => `${nick} disabled Thanos mode`,
+    thanosBlocked: (sec) => `🔱 Thanos abuse detected! Unlocks in ${sec}s`,
   }
 };
 
@@ -780,7 +782,63 @@ loop();
 // ── INSERT AFTER: loop() — Steps 2/3/4 Supabase Realtime ──
 
 // ── THANOS TOGGLE ──
+const _thanosPressLog = [];
+let _thanosBlockedUntil = 0;
+let _thanosBlockTimer = null;
+
 document.getElementById('thanosToggle').addEventListener('click', () => {
+  const now = Date.now();
+
+  // 차단 중이면 남은 시간 표시 후 무시
+  if (now < _thanosBlockedUntil) {
+    const sec = Math.ceil((_thanosBlockedUntil - now) / 1000);
+    addThanosLog('⚠', LANG[lang].thanosBlocked(sec));
+    return;
+  }
+
+  // 1분 이내 클릭만 남기기
+  const oneMinAgo = now - 60 * 1000;
+  while (_thanosPressLog.length && _thanosPressLog[0] < oneMinAgo) _thanosPressLog.shift();
+  _thanosPressLog.push(now);
+
+  // 1분 내 3회 이상이면 5분 차단
+  if (_thanosPressLog.length >= 3) {
+    _thanosBlockedUntil = now + 5 * 60 * 1000;
+    _thanosPressLog.length = 0;
+
+    // 타노스 모드 강제 OFF
+    if (thanosMode) {
+      thanosMode = false;
+      const btn = document.getElementById('thanosToggle');
+      btn.classList.remove('active');
+      btn.textContent = LANG[lang].thanosOff;
+      if (window._room) {
+        window._room.send({ type: 'broadcast', event: 'thanos_toggle',
+          payload: { nickname: window._nickname, on: false } });
+      }
+    }
+
+    // 버튼 비활성화 + 카운트다운
+    const btn = document.getElementById('thanosToggle');
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+    const tick = () => {
+      const rem = Math.ceil((_thanosBlockedUntil - Date.now()) / 1000);
+      if (rem <= 0) {
+        btn.disabled = false;
+        btn.style.opacity = '';
+        btn.textContent = LANG[lang].thanosOff;
+        _thanosBlockTimer = null;
+      } else {
+        btn.textContent = `🔱 ${rem}s`;
+        _thanosBlockTimer = setTimeout(tick, 1000);
+      }
+    };
+    tick();
+    addThanosLog('⚠', LANG[lang].thanosBlocked(300));
+    return;
+  }
+
   thanosMode = !thanosMode;
   const btn = document.getElementById('thanosToggle');
   btn.classList.toggle('active', thanosMode);
@@ -799,7 +857,7 @@ function addThanosLog(nick, isOn) {
   const log = document.getElementById('thanosLog');
   const el = document.createElement('div');
   el.className = 'thanos-log-entry';
-  el.textContent = isOn ? LANG[lang].thanosLogOn(nick) : LANG[lang].thanosLogOff(nick);
+  el.textContent = typeof isOn === 'string' ? isOn : (isOn ? LANG[lang].thanosLogOn(nick) : LANG[lang].thanosLogOff(nick));
   log.appendChild(el);
   requestAnimationFrame(() => el.classList.add('visible'));
   while (log.children.length > 20) log.removeChild(log.firstChild);
