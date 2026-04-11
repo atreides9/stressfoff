@@ -265,11 +265,70 @@ html, body {
   transition: opacity 0.2s;
   white-space: nowrap;
 }
+
+/* ── THANOS MODE TOGGLE ── */
+#thanosToggle {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 4px clamp(9px, 1.8vw, 14px);
+  border-radius: 20px;
+  border: 1px solid rgba(150,100,255,0.22);
+  background: transparent;
+  color: rgba(180,140,255,0.4);
+  font-size: clamp(9px, 1.3vw, 11px);
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  transition: all 0.2s;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+#thanosToggle:hover {
+  border-color: rgba(150,100,255,0.45);
+  color: rgba(200,160,255,0.75);
+}
+#thanosToggle.active {
+  background: rgba(110,50,240,0.18);
+  border-color: rgba(180,120,255,0.55);
+  color: rgba(220,190,255,0.95);
+  box-shadow: 0 0 10px rgba(130,70,255,0.25);
+}
+
+/* ── THANOS LOG (right-side timeline) ── */
+#thanosLog {
+  position: fixed;
+  right: clamp(14px, 3vw, 28px);
+  top: 64px;
+  width: clamp(160px, 22vw, 260px);
+  max-height: 55vh;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  pointer-events: none;
+  z-index: 9;
+  overflow: hidden;
+}
+.thanos-log-entry {
+  font-family: 'Courier New', monospace;
+  font-size: clamp(8px, 1.05vw, 10px);
+  color: rgba(200,160,255,0);
+  text-align: right;
+  letter-spacing: 0.6px;
+  line-height: 1.45;
+  padding-right: 9px;
+  border-right: 2px solid rgba(140,80,255,0.35);
+  transition: color 0.35s;
+  word-break: keep-all;
+}
+.thanos-log-entry.visible {
+  color: rgba(200,160,255,0.75);
+}
 </style>
 </head>
 <body>
 <div id="app">
   <canvas id="canvas"></canvas>
+  <div id="thanosLog"></div>
 
   <div id="topBar">
     <div id="title">Obliterate</div>
@@ -282,12 +341,14 @@ html, body {
     </div>
     <div id="langToggle">
       <button class="langBtn active" data-lang="ko">한국어</button>
-      <button class="langBtn" data-lang="en">English</button>
+      <button class="langBtn" data-lang="en">Eng</button>
     </div>
   </div>
 
   <div id="panel">
-    <div id="modeBar"></div>
+    <div id="modeBar">
+      <button id="thanosToggle"></button>
+    </div>
     <div id="inputRow">
       <textarea id="textInput" rows="2" spellcheck="false"></textarea>
       <div id="btnCol">
@@ -302,12 +363,16 @@ html, body {
 <script>
 const LANG = {
   ko: {
-    modes: ['💥 폭발','🔥 연소','🌀 소멸','❄ 파쇄'],
+    modes: ['💥 폭발','🔥 ','🌀 소멸','❄ 파쇄'],
     placeholder: '파괴할 텍스트를 입력하세요\n여러 줄도 됩니다...',
     spawn: '소환',
     destroy: '전부 파괴',
     hint: '마우스를 글자 위에 올리면 파괴됩니다',
     defaultText: '스트레스여\n안녕',
+    thanosOn: '🔱 타노스 ON',
+    thanosOff: '🔱 타노스 OFF',
+    thanosLogOn: (nick) => `${nick}님이 타노스 모드를 켰습니다`,
+    thanosLogOff: (nick) => `${nick}님이 타노스 모드를 껐습니다`,
   },
   en: {
     modes: ['💥 Explode','🔥 Burn','🌀 Void','❄ Shatter'],
@@ -316,10 +381,14 @@ const LANG = {
     destroy: 'Destroy All',
     hint: 'Hover over letters to destroy them',
     defaultText: 'GOODBYE\nSTRESS',
+    thanosOn: '🔱 Thanos ON',
+    thanosOff: '🔱 Thanos OFF',
+    thanosLogOn: (nick) => `${nick} enabled Thanos mode`,
+    thanosLogOff: (nick) => `${nick} disabled Thanos mode`,
   }
 };
 
-let lang = 'ko', mode = 'explode';
+let lang = 'ko', mode = 'explode', thanosMode = false;
 const modeKeys = ['explode','burn','void','shatter'];
 
 // ── INSERT AFTER: LANG/mode declarations ──
@@ -364,7 +433,9 @@ const modeKeys = ['explode','burn','void','shatter'];
 function applyLang() {
   const L = LANG[lang];
   const bar = document.getElementById('modeBar');
-  bar.innerHTML = '';
+  // 타노스 버튼은 유지하고 모드 버튼만 교체
+  bar.querySelectorAll('.modeBtn').forEach(b => b.remove());
+  const thanosBtn = document.getElementById('thanosToggle');
   modeKeys.forEach((k, i) => {
     const b = document.createElement('button');
     b.className = 'modeBtn' + (k === mode ? ' active' : '');
@@ -375,8 +446,9 @@ function applyLang() {
       document.querySelectorAll('.modeBtn').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
     });
-    bar.appendChild(b);
+    bar.insertBefore(b, thanosBtn);
   });
+  thanosBtn.textContent = thanosMode ? L.thanosOn : L.thanosOff;
   const inp = document.getElementById('textInput');
   inp.placeholder = L.placeholder;
   document.getElementById('spawnBtn').textContent = L.spawn;
@@ -442,10 +514,11 @@ const COLORS = ['#ff6b5b','#ffb347','#ffe066','#a8edea','#88d8b0','#c9b1ff','#ff
 
 /* ── GLYPH ── */
 class Glyph {
-  constructor(ch, x, y, fs, color) {
+  constructor(ch, x, y, fs, color, owner) {
     this.ch = ch; this.x = x; this.y = y;
     this.ox = x; this.oy = y;
     this.fs = fs; this.color = color;
+    this.owner = owner || window._nickname;
     this.font = `${fs}px Georgia, serif`;
     this.w = measureChar(ch, this.font);
     this.alpha = 0; this.scale = 0.2;
@@ -477,7 +550,7 @@ class Glyph {
       else { this.vy+=.38; this.vx*=.98; this.alpha-=.02; this.rot+=this.rotV; }
       this.x+=this.vx; this.y+=this.vy;
       if (this.alpha<=0 || this.y>H+120 || this.x<-200 || this.x>W+200) this.alive=false;
-    } else { if (this.hover()) this.kill(); }
+    } else { if (this.hover() && (thanosMode || this.owner === window._nickname)) this.kill(); }
   }
   draw() {
     if (!this.alive || this.alpha<=0) return;
@@ -514,12 +587,70 @@ class Particle {
   }
 }
 
+/* ── PROFANITY FILTER ── */
+const PROFANITY_KO = [
+  '씨발','시발','씨바','시바','ㅅㅂ','쉬발','쒸발','씨팔','시팔',
+  '개새끼','개새기','개쌔끼','ㄱㅅㄲ',
+  '병신','ㅂㅅ','벙신',
+  '미친놈','미친새끼',
+  '좆','좇','ㅈ같','좆같','좇같',
+  '보지','보짓','보지같','창녀','창녀년',
+  '썅','쌍놈','쌍년','쌍것',
+  '새끼','새기','쌔끼','ㅅㄲ',
+  '개소리','개같','개년','개놈','개자식',
+  '꺼져','꺼지','죽어','뒤져','뒤지','뒤졌','뒤진','뒈져','뒈지',
+  '존나','존내','ㅈㄴ','졸라','조낸',
+  '빠구리','보빨','보빠','보빨러',
+  '애미','에미','애비','에비','애미뒤','에미뒤',
+  '걸레','걸레같','창년','창넌',
+  '후레자식','후레','호로자식','호로새끼',
+  '개쓰레기','쓰레기같','찐따','찐빠','정신병자','정신병',
+  '자지','자지같','음경'
+];
+
+const PROFANITY_EN = [
+  'fuck','f\\*ck','fck','fuk','fuq','fvck','phuck',
+  'bitch','b\\*tch','btch','biatch','b1tch',
+  'asshole','a\\*\\*hole','arsehole',
+  'cunt','c\\*nt',
+  'dick','d\\*ck','dik',
+  'cock','c\\*ck',
+  'pussy','puss\\*',
+  'bastard','b\\*stard',
+  'motherfucker','mf','mofo','mthfckr',
+  'nigger','n\\*gger','nigga','n\\*gga',
+  'faggot','fag','f\\*g',
+  'whore','wh\\*re',
+  'slut','sl\\*t',
+  'retard','ret\\*rd',
+  'crap','cr\\*p',
+  'damn','d\\*mn',
+  'ass','\\bass\\b',
+  'wtf','stfu','gtfo'
+];
+
+function filterProfanity(text) {
+  let result = text;
+  PROFANITY_KO.forEach(word => {
+    const re = new RegExp(word, 'gi');
+    result = result.replace(re, '**');
+  });
+  // -년 으로 끝나는 욕설 (작년·내년·금년·수년·몇년 등 연도 관련 단어 제외)
+  result = result.replace(/(?<![작내금수몇])[가-힣]*년/g, '**');
+  PROFANITY_EN.forEach(word => {
+    const re = new RegExp('\\b' + word + '\\b', 'gi');
+    result = result.replace(re, '**');
+  });
+  return result;
+}
+
 /* ── SPAWN TEXT (multiline) ── */
 let particles=[], glyphs=[], lastText=LANG[lang].defaultText;
 
-function spawnText(raw) {
+function spawnText(raw, owner) {
   if (raw != null) lastText = raw;
-  const text = (raw != null) ? raw : lastText;
+  const text = filterProfanity((raw != null) ? raw : lastText);
+  const spawnOwner = owner || window._nickname;
   const lines = text.split('\n').filter(l => l.length > 0);
   if (!lines.length) return;
 
@@ -577,7 +708,7 @@ function spawnText(raw) {
     chars.forEach((c, ci) => {
       const gx = cx + cws[ci] / 2;
       const gy = baseY;
-      const g = new Glyph(c, gx, gy, fs, COLORS[(startLen + clusterIdx) % COLORS.length]);
+      const g = new Glyph(c, gx, gy, fs, COLORS[(startLen + clusterIdx) % COLORS.length], spawnOwner);
       g.st = -(clusterIdx * 0.06);
       glyphs.push(g);
       cx += cws[ci];
@@ -586,8 +717,13 @@ function spawnText(raw) {
   });
 }
 
-function destroyAll() {
-  glyphs.forEach(g => g.kill());
+function destroyAll(owner) {
+  if (thanosMode) {
+    glyphs.forEach(g => g.kill());
+  } else {
+    const target = owner || window._nickname;
+    glyphs.filter(g => g.owner === target).forEach(g => g.kill());
+  }
 }
 
 // ── INSERT AFTER: spawnBtn / destroyBtn — now also broadcast ──
@@ -642,6 +778,36 @@ spawnText(lastText);
 loop();
 
 // ── INSERT AFTER: loop() — Steps 2/3/4 Supabase Realtime ──
+
+// ── THANOS TOGGLE ──
+document.getElementById('thanosToggle').addEventListener('click', () => {
+  thanosMode = !thanosMode;
+  const btn = document.getElementById('thanosToggle');
+  btn.classList.toggle('active', thanosMode);
+  btn.textContent = thanosMode ? LANG[lang].thanosOn : LANG[lang].thanosOff;
+  addThanosLog(window._nickname, thanosMode);
+  if (window._room) {
+    window._room.send({
+      type: 'broadcast', event: 'thanos_toggle',
+      payload: { nickname: window._nickname, on: thanosMode }
+    });
+  }
+});
+
+// ── THANOS LOG ──
+function addThanosLog(nick, isOn) {
+  const log = document.getElementById('thanosLog');
+  const el = document.createElement('div');
+  el.className = 'thanos-log-entry';
+  el.textContent = isOn ? LANG[lang].thanosLogOn(nick) : LANG[lang].thanosLogOff(nick);
+  log.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('visible'));
+  while (log.children.length > 20) log.removeChild(log.firstChild);
+  setTimeout(() => {
+    el.classList.remove('visible');
+    setTimeout(() => el.remove(), 350);
+  }, 8000);
+}
 
 // Step 3: Ghost notification helper
 function showNotification(nick, eventType) {
@@ -716,12 +882,19 @@ function initSupabase() {
   // Step 3: Receive remote broadcast events
   room
     .on('broadcast', { event: 'spawn' }, ({ payload }) => {
-      spawnText(payload.text);
+      spawnText(payload.text, payload.nickname);
       showNotification(payload.nickname, 'spawn');
     })
     .on('broadcast', { event: 'destroy_all' }, ({ payload }) => {
-      destroyAll();
+      destroyAll(payload.nickname);
       showNotification(payload.nickname, 'destroy_all');
+    })
+    .on('broadcast', { event: 'thanos_toggle' }, ({ payload }) => {
+      thanosMode = payload.on;
+      const btn = document.getElementById('thanosToggle');
+      btn.classList.toggle('active', thanosMode);
+      btn.textContent = thanosMode ? LANG[lang].thanosOn : LANG[lang].thanosOff;
+      addThanosLog(payload.nickname, payload.on);
     })
     // Step 4: Presence sync → update online count + collect nicknames
     .on('presence', { event: 'sync' }, () => {
