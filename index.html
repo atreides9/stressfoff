@@ -363,7 +363,7 @@ function resize() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 resize();
-window.addEventListener('resize', () => { resize(); spawnText(lastText); });
+window.addEventListener('resize', () => { resize(); });
 
 /* ── MOUSE / TOUCH ── */
 let mouse = { x: -9999, y: -9999 };
@@ -463,35 +463,33 @@ class Particle {
 let particles=[], glyphs=[], lastText=LANG[lang].defaultText;
 
 function spawnText(raw) {
-  lastText = (raw != null) ? raw : lastText;
-  glyphs=[]; particles=[]; window._textBox = null;
-  const lines = lastText.split('\n').filter(l => l.length > 0);
+  if (raw != null) lastText = raw;
+  const text = (raw != null) ? raw : lastText;
+  const lines = text.split('\n').filter(l => l.length > 0);
   if (!lines.length) return;
 
   const panelH = document.getElementById('panel').getBoundingClientRect().height;
-  const topPad = 56;
-  const availH = H - topPad - panelH - 32;
-  const boxPadX = Math.max(48, W * 0.12);
-  const availW = W - boxPadX * 2;
+  const safeTop = 56 + 16;
+  const safeBottom = H - panelH - 16;
+  const safeLeft = W * 0.10;
+  const safeRight = W * 0.90;
+  const availW = safeRight - safeLeft;
+  const availH = safeBottom - safeTop;
 
-  const maxCharsInLine = Math.max(...lines.map(l=>[...l].length));
-  const totalLines = lines.length;
+  const maxCharsInLine = Math.max(...lines.map(l => [...l].length));
 
+  // Smaller cap so multiple clusters coexist without dominating the screen
+  const maxFs = W < 500 ? 36 : 48;
   let fs = Math.min(
     Math.floor(availW / Math.max(maxCharsInLine * 0.62, 1)),
-    Math.floor(availH / (totalLines * 1.55)),
-    W < 500 ? 56 : 96
+    Math.floor(availH / (lines.length * 1.55)),
+    maxFs
   );
-  fs = Math.max(18, Math.min(fs, W < 500 ? 56 : 96));
+  fs = Math.max(18, Math.min(fs, maxFs));
 
   const lineH = fs * 1.5;
   const totalTextH = lines.length * lineH;
 
-  // Center of available area (between topbar and panel)
-  const centerY = topPad + availH / 2;
-  const startY = centerY - totalTextH / 2 + lineH / 2;
-
-  // Find max line width to draw the box
   const font = `${fs}px Georgia, serif`;
   let maxLineW = 0;
   const lineWidths = lines.map(line => {
@@ -501,40 +499,40 @@ function spawnText(raw) {
     return w;
   });
 
-  // Draw subtle bounding box on canvas (stored as metadata, drawn in loop)
-  window._textBox = {
-    x: W/2 - maxLineW/2 - fs*0.5,
-    y: startY - lineH/2 - fs*0.25,
-    w: maxLineW + fs,
-    h: totalTextH + fs*0.5,
-    alpha: 1
-  };
+  // Randomized scatter placement — clamp so cluster stays within safe area
+  const minCX = safeLeft + maxLineW / 2;
+  const maxCX = safeRight - maxLineW / 2;
+  const centerX = minCX + Math.random() * Math.max(0, maxCX - minCX);
 
-  let globalIdx = 0;
+  const minCY = safeTop + totalTextH / 2;
+  const maxCY = safeBottom - totalTextH / 2;
+  const centerY = minCY + Math.random() * Math.max(0, maxCY - minCY);
+
+  const startY = centerY - totalTextH / 2 + lineH / 2;
+
+  const startLen = glyphs.length;
+  let clusterIdx = 0;
   lines.forEach((line, li) => {
     const chars = [...line];
     const cws = chars.map(c => measureChar(c, font));
     const lineW = lineWidths[li];
-    // Center each line within the max width box
-    let cx = W/2 - lineW/2;
+    let cx = centerX - lineW / 2;
     const baseY = startY + li * lineH;
 
     chars.forEach((c, ci) => {
-      const gx = cx + cws[ci]/2;
+      const gx = cx + cws[ci] / 2;
       const gy = baseY;
-      const g = new Glyph(c, gx, gy, fs, COLORS[globalIdx % COLORS.length]);
-      g.st = -(globalIdx * 0.06);
+      const g = new Glyph(c, gx, gy, fs, COLORS[(startLen + clusterIdx) % COLORS.length]);
+      g.st = -(clusterIdx * 0.06);
       glyphs.push(g);
       cx += cws[ci];
-      globalIdx++;
+      clusterIdx++;
     });
   });
 }
 
 function destroyAll() {
-  // All glyphs die simultaneously
   glyphs.forEach(g => g.kill());
-  if (window._textBox) window._textBox.alpha = 0;
 }
 
 // ── INSERT AFTER: spawnBtn / destroyBtn — now also broadcast ──
@@ -561,13 +559,10 @@ document.getElementById('textInput').addEventListener('keydown', e => {
   if (e.key==='Enter' && (e.metaKey||e.ctrlKey)) { e.preventDefault(); spawnText(e.target.value); }
 });
 
-function drawTextBox() {}
-
 /* ── RENDER LOOP ── */
 function loop() {
   ctx.fillStyle='rgba(7,7,13,0.22)';
   ctx.fillRect(0,0,W,H);
-  drawTextBox();
   particles = particles.filter(p=>p.alive);
   particles.forEach(p=>{p.update();p.draw();});
   glyphs.forEach(g=>{g.update();g.draw();});
