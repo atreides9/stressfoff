@@ -201,6 +201,28 @@ html, body {
   pointer-events: none;
   user-select: none;
 }
+
+/* ── INSERT AFTER: multiplayer UI styles ── */
+/* Step 3: Ghost notification */
+.ghost-notif {
+  position: fixed;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 1.2px;
+  pointer-events: none;
+  z-index: 99;
+  opacity: 0;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
 </style>
 </head>
 <body>
@@ -305,6 +327,12 @@ function applyLang() {
   document.getElementById('spawnBtn').textContent = L.spawn;
   document.getElementById('destroyBtn').textContent = L.destroy;
   document.getElementById('hint').textContent = L.hint;
+  // re-render online count in new lang
+  const oc = document.getElementById('onlineCount');
+  if (oc && oc.textContent) {
+    const m = oc.textContent.match(/\d+/);
+    if (m) updateOnlineCount(parseInt(m[0], 10));
+  }
 }
 
 document.querySelectorAll('.langBtn').forEach(b => {
@@ -509,10 +537,26 @@ function destroyAll() {
   if (window._textBox) window._textBox.alpha = 0;
 }
 
+// ── INSERT AFTER: spawnBtn / destroyBtn — now also broadcast ──
 document.getElementById('spawnBtn').addEventListener('click', () => {
-  spawnText(document.getElementById('textInput').value);
+  const text = document.getElementById('textInput').value;
+  spawnText(text);
+  if (window._room) {
+    window._room.send({
+      type: 'broadcast', event: 'spawn',
+      payload: { text, nickname: window._nickname, lang, mode }
+    });
+  }
 });
-document.getElementById('destroyBtn').addEventListener('click', destroyAll);
+document.getElementById('destroyBtn').addEventListener('click', () => {
+  destroyAll();
+  if (window._room) {
+    window._room.send({
+      type: 'broadcast', event: 'destroy_all',
+      payload: { nickname: window._nickname }
+    });
+  }
+});
 document.getElementById('textInput').addEventListener('keydown', e => {
   if (e.key==='Enter' && (e.metaKey||e.ctrlKey)) { e.preventDefault(); spawnText(e.target.value); }
 });
@@ -533,6 +577,76 @@ function loop() {
 
 spawnText(lastText);
 loop();
+
+// ── INSERT AFTER: loop() — Steps 2/3/4 Supabase Realtime ──
+
+// Step 3: Ghost notification helper
+function showNotification(nick, eventType) {
+  if (nick === window._nickname) return; // skip own actions
+  const el = document.createElement('div');
+  el.className = 'ghost-notif';
+  if (lang === 'ko') {
+    el.textContent = eventType === 'spawn'
+      ? `${nick}이 소환했습니다`
+      : `${nick}이 전부 파괴했습니다`;
+  } else {
+    el.textContent = eventType === 'spawn'
+      ? `${nick} spawned`
+      : `${nick} destroyed all`;
+  }
+  document.getElementById('app').appendChild(el);
+  requestAnimationFrame(() => {
+    el.style.opacity = '1';
+    setTimeout(() => {
+      el.style.transition = 'opacity 0.3s';
+      el.style.opacity = '0';
+      setTimeout(() => el.remove(), 300);
+    }, 2000);
+  });
+}
+
+// Step 4: Update online count display
+function updateOnlineCount(count) {
+  const el = document.getElementById('onlineCount');
+  if (!el) return;
+  el.textContent = lang === 'ko' ? `● ${count}명` : `● ${count} online`;
+}
+
+// Step 2: Supabase init — runs after CDN script loads
+function initSupabase() {
+  const SUPABASE_URL = 'https://ksxzvjmbbsqllythprdq.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzeHp2am1iYnNxbGx5dGhwcmRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MTU0OTMsImV4cCI6MjA5MTQ5MTQ5M30.jDsK5sLJvRf97WQTjCbViHAltZwMDttf993wHVxliM0';
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const room = client.channel('obliterate-room', {
+    config: { broadcast: { self: false } }
+  });
+  window._room = room;
+
+  // Step 3: Receive remote broadcast events
+  room
+    .on('broadcast', { event: 'spawn' }, ({ payload }) => {
+      spawnText(payload.text);
+      showNotification(payload.nickname, 'spawn');
+    })
+    .on('broadcast', { event: 'destroy_all' }, ({ payload }) => {
+      destroyAll();
+      showNotification(payload.nickname, 'destroy_all');
+    })
+    // Step 4: Presence sync → update online count
+    .on('presence', { event: 'sync' }, () => {
+      const count = Object.keys(room.presenceState()).length;
+      updateOnlineCount(count);
+    })
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        // Step 4: Track self in presence
+        room.track({ nickname: window._nickname });
+      }
+    });
+}
 </script>
+<!-- ── INSERT BEFORE </body>: Supabase CDN ── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="initSupabase()"></script>
 </body>
 </html>
