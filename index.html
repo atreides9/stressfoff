@@ -610,8 +610,11 @@ document.getElementById('destroyBtn').addEventListener('click', () => {
     });
   }
 });
+let _composing = false;
+document.getElementById('textInput').addEventListener('compositionstart', () => { _composing = true; });
+document.getElementById('textInput').addEventListener('compositionend', () => { setTimeout(() => { _composing = false; }, 0); });
 document.getElementById('textInput').addEventListener('keydown', e => {
-  if (e.key==='Enter' && !e.shiftKey && !e.isComposing) {
+  if (e.key==='Enter' && !e.shiftKey && !e.isComposing && !_composing) {
     e.preventDefault();
     const text = e.target.value;
     spawnText(text);
