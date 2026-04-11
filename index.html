@@ -185,6 +185,22 @@ html, body {
   text-transform: uppercase;
   font-family: 'Courier New', monospace;
 }
+
+/* ── MULTIPLAYER UI ── */
+#topMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+#onlineCount, #nickname {
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 1.2px;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
 </style>
 </head>
 <body>
@@ -193,6 +209,10 @@ html, body {
 
   <div id="topBar">
     <div id="title">Obliterate</div>
+    <div id="topMeta">
+      <span id="onlineCount"></span>
+      <span id="nickname"></span>
+    </div>
     <div id="langToggle">
       <button class="langBtn active" data-lang="ko">한국어</button>
       <button class="langBtn" data-lang="en">English</button>
@@ -234,6 +254,35 @@ const LANG = {
 
 let lang = 'ko', mode = 'explode';
 const modeKeys = ['explode','burn','void','shatter'];
+
+// ── INSERT AFTER: LANG/mode declarations ──
+// Step 1: Nickname system
+(function initNickname() {
+  const ADJS = [
+    '심심한','열받은','지친','억울한','신난','멍한','화난','설레는','졸린','배고픈',
+    '무서운','슬픈','행복한','당황한','뻔뻔한','외로운','질투하는','황당한','뿌듯한','민망한',
+    '짜증난','쑥스러운','긴장한','후회하는','그리운','두근거리는','불안한','허탈한','뭉클한','어이없는',
+    '흥분한','지루한'
+  ];
+  const NOUNS = [
+    '냉장고','두부','연필깎이','부처님','슬리퍼','에어팟','택배기사','고양이',
+    '세탁기','전봇대','참외','맥북','우산','국밥','클립','변기','리모컨','볼펜',
+    '멸치','마우스패드','이어폰','공기청정기','고구마','쓰레기통','프린터','수건',
+    '삼겹살','치약','버스기사','양말'
+  ];
+  const stored = sessionStorage.getItem('obliterate_nickname');
+  let nick;
+  if (stored) {
+    nick = stored;
+  } else {
+    const adj = ADJS[Math.floor(Math.random() * ADJS.length)];
+    const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+    nick = adj + ' ' + noun;
+    sessionStorage.setItem('obliterate_nickname', nick);
+  }
+  window._nickname = nick;
+  document.getElementById('nickname').textContent = nick;
+})();
 
 function applyLang() {
   const L = LANG[lang];
