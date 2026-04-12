@@ -137,17 +137,17 @@ html.light #panel {
   background: linear-gradient(to top, rgba(240,237,232,0.99) 55%, transparent);
 }
 html.light #title {
-  color: rgba(0,0,0,0.25);
+  color: rgba(0,0,0,0.50);
 }
 html.light #onlineCount, html.light #nickname {
-  color: rgba(0,0,0,0.4);
+  color: rgba(0,0,0,0.65);
 }
 html.light #langToggle {
   border-color: rgba(0,0,0,0.12);
   background: rgba(0,0,0,0.03);
 }
 html.light .langBtn {
-  color: rgba(0,0,0,0.3);
+  color: rgba(0,0,0,0.65);
 }
 html.light .langBtn.active {
   background: rgba(0,0,0,0.08);
@@ -156,7 +156,7 @@ html.light .langBtn.active {
 /* themeSwitch light styles handled above */
 html.light #infoBtn {
   border-color: rgba(0,0,0,0.12);
-  color: rgba(0,0,0,0.35);
+  color: rgba(0,0,0,0.65);
 }
 html.light #infoBtn:hover {
   color: rgba(0,0,0,0.75);
@@ -168,14 +168,14 @@ html.light #textInput {
   color: #1a1a1a;
 }
 html.light #textInput::placeholder {
-  color: rgba(0,0,0,0.22);
+  color: rgba(0,0,0,0.45);
 }
 html.light #textInput:focus {
   border-color: rgba(200,50,30,0.4);
 }
 html.light .modeBtn {
   border-color: rgba(0,0,0,0.1);
-  color: rgba(0,0,0,0.38);
+  color: rgba(0,0,0,0.65);
 }
 html.light .modeBtn.active {
   background: rgba(0,0,0,0.07);
@@ -189,7 +189,7 @@ html.light .modeBtn:hover {
 html.light .btn {
   border-color: rgba(0,0,0,0.13);
   background: rgba(0,0,0,0.04);
-  color: rgba(0,0,0,0.6);
+  color: rgba(0,0,0,0.72);
 }
 html.light .btn:hover {
   background: rgba(0,0,0,0.09);
@@ -198,7 +198,7 @@ html.light .btn:hover {
 html.light .btn.danger {
   border-color: rgba(200,40,40,0.3);
   background: rgba(200,30,30,0.05);
-  color: rgba(180,60,50,0.88);
+  color: rgba(180,60,50,1);
 }
 html.light .btn.danger:hover {
   background: rgba(200,30,30,0.12);
@@ -211,15 +211,15 @@ html.light #lockBtn.active {
   box-shadow: 0 0 8px rgba(180,140,0,0.2);
 }
 html.light #hint {
-  color: rgba(0,0,0,0.2);
+  color: rgba(0,0,0,0.45);
 }
 html.light #thanosToggle {
-  border-color: rgba(100,60,200,0.2);
-  color: rgba(90,50,180,0.45);
+  border-color: rgba(100,60,200,0.35);
+  color: rgba(90,50,180,0.80);
 }
 html.light #thanosToggle:hover {
-  border-color: rgba(100,60,200,0.4);
-  color: rgba(90,50,180,0.72);
+  border-color: rgba(100,60,200,0.55);
+  color: rgba(90,50,180,0.92);
 }
 html.light #thanosToggle.active {
   background: rgba(90,40,200,0.1);
@@ -228,7 +228,29 @@ html.light #thanosToggle.active {
   box-shadow: 0 0 10px rgba(100,50,200,0.15);
 }
 html.light #thanosCooldown {
-  color: rgba(100,60,200,0.65);
+  color: rgba(100,60,200,0.88);
+}
+
+/* ── LIGHT MODE: sticky messages ── */
+html.light .sticky-msg {
+  background: hsla(var(--nick-hue, 50), 60%, 40%, 0.08);
+  border-color: hsla(var(--nick-hue, 50), 60%, 40%, 0.28);
+}
+html.light .sticky-msg.mine {
+  border-color: hsla(var(--nick-hue, 50), 60%, 35%, 0.45);
+}
+html.light .sticky-msg.mine:hover {
+  background: hsla(var(--nick-hue, 50), 60%, 35%, 0.14);
+  border-color: hsla(var(--nick-hue, 50), 60%, 35%, 0.65);
+}
+html.light .sticky-owner {
+  color: hsla(var(--nick-hue, 50), 60%, 28%, 0.65);
+}
+html.light .sticky-text {
+  color: hsla(var(--nick-hue, 50), 55%, 22%, 0.92);
+}
+html.light .sticky-msg.mine:hover .sticky-delete-hint {
+  color: rgba(120,80,0,0.6);
 }
 
 /* ── INFO ICON ── */
@@ -458,6 +480,7 @@ html.light #thanosCooldown {
   line-height: 1.45;
   white-space: pre-wrap;
 }
+.sticky-delete-hint { display: none; }
 .sticky-msg.mine .sticky-delete-hint {
   font-size: 8px;
   font-family: 'Courier New', monospace;
