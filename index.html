@@ -90,37 +90,40 @@ html, body {
 }
 .langBtn.active { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.85); }
 
-/* ── THEME TOGGLE ── */
-#themeToggle {
-  display: flex;
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 20px;
-  overflow: hidden;
-  pointer-events: all;
-  gap: 0;
-}
-.themeBtn {
-  width: 22px;
-  height: 22px;
-  border: none;
+/* ── THEME SWITCH ── */
+#themeSwitch {
+  width: 48px;
+  height: 26px;
+  border-radius: 13px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(30,30,50,0.6);
   cursor: pointer;
-  transition: all 0.15s;
-  flex-shrink: 0;
   position: relative;
+  pointer-events: all;
+  transition: background 0.2s, border-color 0.2s;
+  display: flex;
+  align-items: center;
+  padding: 0 3px;
+  flex-shrink: 0;
 }
-#themeDark {
-  background: #0d0d1a;
+#themeSwitchKnob {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: transform 0.25s cubic-bezier(.4,0,.2,1);
+  user-select: none;
+  line-height: 1;
 }
-#themeDark.active {
-  background: #1a1a30;
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.25);
+html.light #themeSwitch {
+  background: rgba(200,190,170,0.5);
+  border-color: rgba(0,0,0,0.15);
 }
-#themeLight {
-  background: #c8c4bc;
-}
-#themeLight.active {
-  background: #f0ede8;
-  box-shadow: inset 0 0 0 2px rgba(0,0,0,0.2);
+html.light #themeSwitchKnob {
+  transform: translateX(22px);
 }
 
 /* ── LIGHT MODE ── */
@@ -150,9 +153,7 @@ html.light .langBtn.active {
   background: rgba(0,0,0,0.08);
   color: rgba(0,0,0,0.82);
 }
-html.light #themeToggle {
-  border-color: rgba(0,0,0,0.15);
-}
+/* themeSwitch light styles handled above */
 html.light #infoBtn {
   border-color: rgba(0,0,0,0.12);
   color: rgba(0,0,0,0.35);
@@ -762,10 +763,9 @@ html.light #thanosCooldown {
       <div id="thanosCooldown"></div>
     </div>
     <div id="topRight">
-      <div id="themeToggle">
-        <button class="themeBtn" id="themeDark" title="Dark mode"></button>
-        <button class="themeBtn" id="themeLight" title="Light mode"></button>
-      </div>
+      <button id="themeSwitch" title="테마 전환">
+        <span id="themeSwitchKnob">🌙</span>
+      </button>
       <div id="langToggle">
         <button class="langBtn active" data-lang="ko">한국어</button>
         <button class="langBtn" data-lang="en">Eng</button>
@@ -947,31 +947,27 @@ document.querySelectorAll('.langBtn').forEach(b => {
 
 applyLang();
 
-/* ── THEME TOGGLE ── */
+/* ── THEME SWITCH ── */
 let _isLight = false;
-const _themeDarkBtn = document.getElementById('themeDark');
-const _themeLightBtn = document.getElementById('themeLight');
+const _themeSwitch = document.getElementById('themeSwitch');
+const _themeSwitchKnob = document.getElementById('themeSwitchKnob');
 
 function applyTheme(light) {
   _isLight = light;
   if (light) {
     document.documentElement.classList.add('light');
-    _themeDarkBtn.classList.remove('active');
-    _themeLightBtn.classList.add('active');
+    _themeSwitchKnob.textContent = '☀️';
   } else {
     document.documentElement.classList.remove('light');
-    _themeDarkBtn.classList.add('active');
-    _themeLightBtn.classList.remove('active');
+    _themeSwitchKnob.textContent = '🌙';
   }
-  // flush canvas background
   try {
     ctx.fillStyle = _isLight ? 'rgba(240,237,232,1)' : 'rgba(7,7,13,1)';
     ctx.fillRect(0, 0, W, H);
   } catch(e) {}
 }
 
-_themeDarkBtn.addEventListener('click', () => applyTheme(false));
-_themeLightBtn.addEventListener('click', () => applyTheme(true));
+_themeSwitch.addEventListener('click', () => applyTheme(!_isLight));
 applyTheme(false);
 
 /* ── CANVAS SETUP ── */
@@ -1234,14 +1230,15 @@ function getNickHue(nick) {
   return _nickColorMap[nick];
 }
 
-/* ── SPAM LIMIT ── */
-let _lastSendTime = 0;
-const SEND_COOLDOWN_MS = 30000;
+/* ── LOCKED MSG RATE LIMIT ── */
+const LOCKED_RATE_WINDOW_MS = 15000;
+const LOCKED_RATE_MAX = 10;
+const _lockedSendLog = [];
 
-function showSpamWarning(sec) {
+function showSpamWarning(msg) {
   const el = document.createElement('div');
   el.className = 'ghost-notif';
-  el.textContent = lang === 'ko' ? `${sec}초 후에 다시 보낼 수 있어요` : `Please wait ${sec}s`;
+  el.textContent = msg;
   document.getElementById('app').appendChild(el);
   requestAnimationFrame(() => {
     el.style.opacity = '1';
@@ -1251,6 +1248,22 @@ function showSpamWarning(sec) {
       setTimeout(() => el.remove(), 300);
     }, 2000);
   });
+}
+
+function checkLockedRateLimit() {
+  const now = Date.now();
+  // 15초 이전 항목 제거
+  while (_lockedSendLog.length && now - _lockedSendLog[0] > LOCKED_RATE_WINDOW_MS) {
+    _lockedSendLog.shift();
+  }
+  if (_lockedSendLog.length >= LOCKED_RATE_MAX) {
+    const waitMs = LOCKED_RATE_WINDOW_MS - (now - _lockedSendLog[0]);
+    const waitSec = Math.ceil(waitMs / 1000);
+    showSpamWarning(lang === 'ko' ? `잠금 메시지 너무 많아요. ${waitSec}초 후 가능합니다` : `Too many locked msgs. Wait ${waitSec}s`);
+    return false;
+  }
+  _lockedSendLog.push(now);
+  return true;
 }
 
 /* ── LOCK / STICKY MESSAGES ── */
@@ -1264,14 +1277,8 @@ document.getElementById('lockBtn').addEventListener('click', () => {
 
 function sendMessage(text) {
   if (!text.trim()) return;
-  const now = Date.now();
-  if (now - _lastSendTime < SEND_COOLDOWN_MS) {
-    const remaining = Math.ceil((SEND_COOLDOWN_MS - (now - _lastSendTime)) / 1000);
-    showSpamWarning(remaining);
-    return;
-  }
-  _lastSendTime = now;
   if (_locked) {
+    if (!checkLockedRateLimit()) return;
     const id = Date.now() + '_' + Math.random().toString(36).slice(2);
     addStickyMessage(text, window._nickname, id);
     if (window._room) {
