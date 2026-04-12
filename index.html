@@ -30,12 +30,32 @@ html, body {
   position: absolute;
   top: 0; left: 0; right: 0;
   z-index: 10;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: flex-start;
   padding: clamp(10px, 2vw, 18px) clamp(14px, 3vw, 28px);
   background: linear-gradient(to bottom, rgba(7,7,13,0.95) 60%, transparent);
   pointer-events: none;
+}
+
+#topLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#topCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+#topRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 #title {
@@ -69,6 +89,49 @@ html, body {
   font-family: 'Courier New', monospace;
 }
 .langBtn.active { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.85); }
+
+/* ── INFO ICON ── */
+#infoWrap {
+  position: relative;
+  pointer-events: all;
+}
+#infoBtn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 50%;
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.3);
+  font-size: 11px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  transition: all 0.15s;
+  line-height: 1;
+}
+#infoBtn:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.3); }
+#infoTooltip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 230px;
+  background: rgba(10,10,18,0.97);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 14px 16px;
+  z-index: 300;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  color: rgba(255,255,255,0.6);
+  line-height: 1.8;
+  letter-spacing: 0.8px;
+  white-space: pre-line;
+  pointer-events: none;
+}
+#infoWrap:hover #infoTooltip,
+#infoWrap:focus-within #infoTooltip { display: block; }
 
 /* ── CANVAS ── */
 #canvas {
@@ -244,8 +307,7 @@ html, body {
   flex-shrink: 0;
 }
 
-/* ── INSERT AFTER: multiplayer UI styles ── */
-/* Step 3: Ghost notification */
+/* ── Ghost notification ── */
 .ghost-notif {
   position: fixed;
   top: 56px;
@@ -266,11 +328,10 @@ html, body {
   white-space: nowrap;
 }
 
-/* ── THANOS MODE TOGGLE ── */
+/* ── THANOS MODE TOGGLE (top center) ── */
 #thanosToggle {
-  margin-left: auto;
   flex-shrink: 0;
-  padding: 4px clamp(9px, 1.8vw, 14px);
+  padding: 5px clamp(12px, 2vw, 18px);
   border-radius: 20px;
   border: 1px solid rgba(150,100,255,0.22);
   background: transparent;
@@ -282,6 +343,7 @@ html, body {
   transition: all 0.2s;
   white-space: nowrap;
   text-transform: uppercase;
+  pointer-events: all;
 }
 #thanosToggle:hover {
   border-color: rgba(150,100,255,0.45);
@@ -292,6 +354,26 @@ html, body {
   border-color: rgba(180,120,255,0.55);
   color: rgba(220,190,255,0.95);
   box-shadow: 0 0 10px rgba(130,70,255,0.25);
+}
+
+/* ── THANOS COOLDOWN TIMER (slides under button) ── */
+#thanosCooldown {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  color: rgba(200,160,255,0.7);
+  text-align: center;
+  letter-spacing: 1.5px;
+  padding-top: 0;
+  pointer-events: none;
+}
+#thanosCooldown.visible {
+  max-height: 28px;
+  opacity: 1;
+  padding-top: 5px;
 }
 
 /* ── THANOS LOG (right-side timeline) ── */
@@ -323,6 +405,110 @@ html, body {
 .thanos-log-entry.visible {
   color: rgba(200,160,255,0.75);
 }
+
+/* ── INTRO MODAL ── */
+#introModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+  transition: opacity 0.25s;
+}
+#introModal.hidden {
+  display: none;
+}
+#introBox {
+  background: rgba(10,10,20,0.98);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 36px 36px 28px;
+  max-width: 440px;
+  width: 90%;
+  position: relative;
+  color: rgba(255,255,255,0.82);
+  font-family: 'Courier New', monospace;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+#introClose {
+  position: absolute;
+  top: 14px; right: 16px;
+  background: none; border: none;
+  color: rgba(255,255,255,0.35);
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.15s;
+  padding: 2px 6px;
+}
+#introClose:hover { color: rgba(255,255,255,0.85); }
+#introTitle {
+  font-size: 15px;
+  letter-spacing: 5px;
+  color: rgba(255,255,255,0.9);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+#introDesc {
+  font-size: 11px;
+  line-height: 1.8;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.6px;
+  margin-bottom: 22px;
+  white-space: pre-line;
+}
+#introShortcutsTitle {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: rgba(200,160,255,0.6);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+#introShortcutsList {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 24px;
+}
+.intro-shortcut {
+  font-size: 10px;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.8px;
+  line-height: 1.6;
+}
+.intro-shortcut kbd {
+  display: inline-block;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  color: rgba(200,160,255,0.8);
+  margin-right: 6px;
+}
+#introStartBtn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(150,100,255,0.3);
+  background: rgba(110,50,240,0.12);
+  color: rgba(200,160,255,0.85);
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+#introStartBtn:hover {
+  background: rgba(110,50,240,0.22);
+  border-color: rgba(180,120,255,0.5);
+  color: rgba(220,190,255,1);
+}
 </style>
 </head>
 <body>
@@ -331,24 +517,34 @@ html, body {
   <div id="thanosLog"></div>
 
   <div id="topBar">
-    <div id="title">Obliterate</div>
-    <div id="topMeta">
-      <div id="onlineWrap">
-        <span id="onlineCount"></span>
-        <div id="presenceDropdown"></div>
+    <div id="topLeft">
+      <div id="title">Obliterate</div>
+      <div id="topMeta">
+        <div id="onlineWrap">
+          <span id="onlineCount"></span>
+          <div id="presenceDropdown"></div>
+        </div>
+        <span id="nickname"></span>
       </div>
-      <span id="nickname"></span>
     </div>
-    <div id="langToggle">
-      <button class="langBtn active" data-lang="ko">한국어</button>
-      <button class="langBtn" data-lang="en">Eng</button>
+    <div id="topCenter">
+      <button id="thanosToggle"></button>
+      <div id="thanosCooldown"></div>
+    </div>
+    <div id="topRight">
+      <div id="langToggle">
+        <button class="langBtn active" data-lang="ko">한국어</button>
+        <button class="langBtn" data-lang="en">Eng</button>
+      </div>
+      <div id="infoWrap">
+        <button id="infoBtn">ℹ</button>
+        <div id="infoTooltip"></div>
+      </div>
     </div>
   </div>
 
   <div id="panel">
-    <div id="modeBar">
-      <button id="thanosToggle"></button>
-    </div>
+    <div id="modeBar"></div>
     <div id="inputRow">
       <textarea id="textInput" rows="2" spellcheck="false"></textarea>
       <div id="btnCol">
@@ -360,10 +556,22 @@ html, body {
   </div>
 </div>
 
+<!-- ── INTRO MODAL ── -->
+<div id="introModal" class="hidden">
+  <div id="introBox">
+    <button id="introClose">✕</button>
+    <div id="introTitle"></div>
+    <div id="introDesc"></div>
+    <div id="introShortcutsTitle"></div>
+    <div id="introShortcutsList"></div>
+    <button id="introStartBtn"></button>
+  </div>
+</div>
+
 <script>
 const LANG = {
   ko: {
-    modes: ['💥 폭발','🔥 ','🌀 소멸','❄ 파쇄'],
+    modes: ['💥 폭발','🔥 연소','🌀 소멸','❄ 파쇄'],
     placeholder: '파괴할 텍스트를 입력하세요\n여러 줄도 됩니다...',
     spawn: '소환',
     destroy: '전부 파괴',
@@ -374,6 +582,17 @@ const LANG = {
     thanosLogOn: (nick) => `${nick}님이 타노스 모드를 켰습니다`,
     thanosLogOff: (nick) => `${nick}님이 타노스 모드를 껐습니다`,
     thanosBlocked: (sec) => `🔱 타노스 남용 감지! ${sec}초 후 해제됩니다`,
+    introTitle: 'OBLITERATE',
+    introDesc: '스트레스를 글자로 소환하고\n마우스로 파괴하세요.',
+    introShortcutsTitle: '단축키',
+    introShortcuts: [
+      { key: 'Ctrl+1', desc: '💥 폭발 모드로 전부 파괴' },
+      { key: 'Ctrl+2', desc: '🔥 연소 모드로 전부 파괴' },
+      { key: 'Ctrl+3', desc: '🌀 소멸 모드로 전부 파괴' },
+      { key: 'Ctrl+4', desc: '❄ 파쇄 모드로 전부 파괴' },
+    ],
+    introStartBtn: '시작하기',
+    tooltipContent: 'OBLITERATE\n스트레스 해소 앱\n\n글자를 소환하고 마우스로 파괴하세요\n\nCtrl+1  💥 폭발\nCtrl+2  🔥 연소\nCtrl+3  🌀 소멸\nCtrl+4  ❄  파쇄',
   },
   en: {
     modes: ['💥 Explode','🔥 Burn','🌀 Void','❄ Shatter'],
@@ -387,14 +606,24 @@ const LANG = {
     thanosLogOn: (nick) => `${nick} enabled Thanos mode`,
     thanosLogOff: (nick) => `${nick} disabled Thanos mode`,
     thanosBlocked: (sec) => `🔱 Thanos abuse detected! Unlocks in ${sec}s`,
+    introTitle: 'OBLITERATE',
+    introDesc: 'Spawn your stress as text\nand destroy it with your cursor.',
+    introShortcutsTitle: 'Shortcuts',
+    introShortcuts: [
+      { key: 'Ctrl+1', desc: '💥 Destroy all — Explode' },
+      { key: 'Ctrl+2', desc: '🔥 Destroy all — Burn' },
+      { key: 'Ctrl+3', desc: '🌀 Destroy all — Void' },
+      { key: 'Ctrl+4', desc: '❄  Destroy all — Shatter' },
+    ],
+    introStartBtn: 'Start',
+    tooltipContent: 'OBLITERATE\nStress Relief App\n\nSpawn text and destroy it\nwith your cursor\n\nCtrl+1  💥 Explode\nCtrl+2  🔥 Burn\nCtrl+3  🌀 Void\nCtrl+4  ❄  Shatter',
   }
 };
 
 let lang = 'ko', mode = 'explode', thanosMode = false;
 const modeKeys = ['explode','burn','void','shatter'];
 
-// ── INSERT AFTER: LANG/mode declarations ──
-// Step 1: Nickname system
+// ── NICKNAME ──
 (function initNickname() {
   const ADJS = [
     '심심한','열받은','지친','억울한','신난','멍한','화난','설레는','졸린','배고픈',
@@ -435,9 +664,7 @@ const modeKeys = ['explode','burn','void','shatter'];
 function applyLang() {
   const L = LANG[lang];
   const bar = document.getElementById('modeBar');
-  // 타노스 버튼은 유지하고 모드 버튼만 교체
-  bar.querySelectorAll('.modeBtn').forEach(b => b.remove());
-  const thanosBtn = document.getElementById('thanosToggle');
+  bar.innerHTML = '';
   modeKeys.forEach((k, i) => {
     const b = document.createElement('button');
     b.className = 'modeBtn' + (k === mode ? ' active' : '');
@@ -448,15 +675,18 @@ function applyLang() {
       document.querySelectorAll('.modeBtn').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
     });
-    bar.insertBefore(b, thanosBtn);
+    bar.appendChild(b);
   });
-  thanosBtn.textContent = thanosMode ? L.thanosOn : L.thanosOff;
+  const btn = document.getElementById('thanosToggle');
+  if (!btn.disabled) btn.textContent = thanosMode ? L.thanosOn : L.thanosOff;
   const inp = document.getElementById('textInput');
   inp.placeholder = L.placeholder;
   document.getElementById('spawnBtn').textContent = L.spawn;
   document.getElementById('destroyBtn').textContent = L.destroy;
   document.getElementById('hint').textContent = L.hint;
-  // re-render online count in new lang
+  // info tooltip
+  document.getElementById('infoTooltip').textContent = L.tooltipContent;
+  // online count re-render
   const oc = document.getElementById('onlineCount');
   if (oc && oc.textContent) {
     const m = oc.textContent.match(/\d+/);
@@ -637,7 +867,6 @@ function filterProfanity(text) {
     const re = new RegExp(word, 'gi');
     result = result.replace(re, '**');
   });
-  // -년 으로 끝나는 욕설 (작년·내년·금년·수년·몇년 등 연도 관련 단어 제외)
   result = result.replace(/(?<![작내금수몇])[가-힣]*년/g, '**');
   PROFANITY_EN.forEach(word => {
     const re = new RegExp('\\b' + word + '\\b', 'gi');
@@ -666,7 +895,6 @@ function spawnText(raw, owner) {
 
   const maxCharsInLine = Math.max(...lines.map(l => [...l].length));
 
-  // Smaller cap so multiple clusters coexist without dominating the screen
   const maxFs = W < 500 ? 36 : 48;
   let fs = Math.min(
     Math.floor(availW / Math.max(maxCharsInLine * 0.62, 1)),
@@ -687,7 +915,6 @@ function spawnText(raw, owner) {
     return w;
   });
 
-  // Randomized scatter placement — clamp so cluster stays within safe area
   const minCX = safeLeft + maxLineW / 2;
   const maxCX = safeRight - maxLineW / 2;
   const centerX = minCX + Math.random() * Math.max(0, maxCX - minCX);
@@ -728,7 +955,6 @@ function destroyAll(owner) {
   }
 }
 
-// ── INSERT AFTER: spawnBtn / destroyBtn — now also broadcast ──
 document.getElementById('spawnBtn').addEventListener('click', () => {
   const text = document.getElementById('textInput').value;
   spawnText(text);
@@ -765,6 +991,23 @@ document.getElementById('textInput').addEventListener('keydown', e => {
   }
 });
 
+/* ── KEYBOARD SHORTCUTS Ctrl+1~4 ── */
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && ['1','2','3','4'].includes(e.key)) {
+    e.preventDefault();
+    const idx = parseInt(e.key) - 1;
+    mode = modeKeys[idx];
+    document.querySelectorAll('.modeBtn').forEach((b, i) => b.classList.toggle('active', i === idx));
+    glyphs.forEach(g => g.kill());
+    if (window._room) {
+      window._room.send({
+        type: 'broadcast', event: 'destroy_all',
+        payload: { nickname: window._nickname, thanosMode: true }
+      });
+    }
+  }
+});
+
 /* ── RENDER LOOP ── */
 function loop() {
   ctx.fillStyle='rgba(7,7,13,0.22)';
@@ -779,17 +1022,24 @@ function loop() {
 spawnText(lastText);
 loop();
 
-// ── INSERT AFTER: loop() — Steps 2/3/4 Supabase Realtime ──
-
-// ── THANOS TOGGLE ──
+/* ── THANOS TOGGLE ── */
 const _thanosPressLog = [];
 let _thanosBlockedUntil = 0;
 let _thanosBlockTimer = null;
 
+function setThanosCooldownVisible(visible, text) {
+  const cd = document.getElementById('thanosCooldown');
+  if (visible) {
+    cd.textContent = text || '';
+    cd.classList.add('visible');
+  } else {
+    cd.classList.remove('visible');
+  }
+}
+
 document.getElementById('thanosToggle').addEventListener('click', () => {
   const now = Date.now();
 
-  // 차단 중이면 남은 시간 표시 후 무시
   if (now < _thanosBlockedUntil) {
     const sec = Math.ceil((_thanosBlockedUntil - now) / 1000);
     addThanosLog('⚠', LANG[lang].thanosBlocked(sec));
@@ -801,12 +1051,11 @@ document.getElementById('thanosToggle').addEventListener('click', () => {
   while (_thanosPressLog.length && _thanosPressLog[0] < oneMinAgo) _thanosPressLog.shift();
   _thanosPressLog.push(now);
 
-  // 1분 내 3회 이상이면 5분 차단
+  // 1분 내 3회 이상이면 3분 차단
   if (_thanosPressLog.length >= 3) {
-    _thanosBlockedUntil = now + 5 * 60 * 1000;
+    _thanosBlockedUntil = now + 3 * 60 * 1000;
     _thanosPressLog.length = 0;
 
-    // 타노스 모드 강제 OFF
     if (thanosMode) {
       thanosMode = false;
       const btn = document.getElementById('thanosToggle');
@@ -818,24 +1067,26 @@ document.getElementById('thanosToggle').addEventListener('click', () => {
       }
     }
 
-    // 버튼 비활성화 + 카운트다운
     const btn = document.getElementById('thanosToggle');
     btn.disabled = true;
     btn.style.opacity = '0.4';
+
     const tick = () => {
       const rem = Math.ceil((_thanosBlockedUntil - Date.now()) / 1000);
       if (rem <= 0) {
         btn.disabled = false;
         btn.style.opacity = '';
         btn.textContent = LANG[lang].thanosOff;
+        setThanosCooldownVisible(false);
         _thanosBlockTimer = null;
       } else {
         btn.textContent = `🔱 ${rem}s`;
+        setThanosCooldownVisible(true, lang === 'ko' ? `남용 감지 — ${rem}초 후 해제` : `Abuse detected — ${rem}s left`);
         _thanosBlockTimer = setTimeout(tick, 1000);
       }
     };
     tick();
-    addThanosLog('⚠', LANG[lang].thanosBlocked(300));
+    addThanosLog('⚠', LANG[lang].thanosBlocked(180));
     return;
   }
 
@@ -852,7 +1103,7 @@ document.getElementById('thanosToggle').addEventListener('click', () => {
   }
 });
 
-// ── THANOS LOG ──
+/* ── THANOS LOG ── */
 function addThanosLog(nick, isOn) {
   const log = document.getElementById('thanosLog');
   const el = document.createElement('div');
@@ -867,9 +1118,9 @@ function addThanosLog(nick, isOn) {
   }, 8000);
 }
 
-// Step 3: Ghost notification helper
+/* ── GHOST NOTIFICATION ── */
 function showNotification(nick, eventType) {
-  if (nick === window._nickname) return; // skip own actions
+  if (nick === window._nickname) return;
   const el = document.createElement('div');
   el.className = 'ghost-notif';
   if (lang === 'ko') {
@@ -892,7 +1143,7 @@ function showNotification(nick, eventType) {
   });
 }
 
-// Step 4: Update online count + presence dropdown
+/* ── ONLINE COUNT + PRESENCE ── */
 let _presenceNicks = [];
 
 function updateOnlineCount(count) {
@@ -926,7 +1177,48 @@ document.addEventListener('click', () => {
   document.getElementById('presenceDropdown').classList.remove('open');
 });
 
-// Step 2: Supabase init — runs after CDN script loads
+/* ── INTRO MODAL ── */
+function buildIntroModal() {
+  const L = LANG[lang];
+  document.getElementById('introTitle').textContent = L.introTitle;
+  document.getElementById('introDesc').textContent = L.introDesc;
+  document.getElementById('introShortcutsTitle').textContent = L.introShortcutsTitle;
+  const list = document.getElementById('introShortcutsList');
+  list.innerHTML = '';
+  L.introShortcuts.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'intro-shortcut';
+    const kbd = document.createElement('kbd');
+    kbd.textContent = s.key;
+    div.appendChild(kbd);
+    div.appendChild(document.createTextNode(s.desc));
+    list.appendChild(div);
+  });
+  document.getElementById('introStartBtn').textContent = L.introStartBtn;
+}
+
+function showIntroModal() {
+  buildIntroModal();
+  document.getElementById('introModal').classList.remove('hidden');
+}
+
+function hideIntroModal() {
+  document.getElementById('introModal').classList.add('hidden');
+  sessionStorage.setItem('obliterate_intro_seen', '1');
+}
+
+document.getElementById('introClose').addEventListener('click', hideIntroModal);
+document.getElementById('introStartBtn').addEventListener('click', hideIntroModal);
+document.getElementById('introModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('introModal')) hideIntroModal();
+});
+
+// Show on first visit
+if (!sessionStorage.getItem('obliterate_intro_seen')) {
+  setTimeout(showIntroModal, 300);
+}
+
+/* ── SUPABASE INIT ── */
 function initSupabase() {
   const SUPABASE_URL = 'https://ksxzvjmbbsqllythprdq.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzeHp2am1iYnNxbGx5dGhwcmRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MTU0OTMsImV4cCI6MjA5MTQ5MTQ5M30.jDsK5sLJvRf97WQTjCbViHAltZwMDttf993wHVxliM0';
@@ -937,7 +1229,6 @@ function initSupabase() {
   });
   window._room = room;
 
-  // Step 3: Receive remote broadcast events
   room
     .on('broadcast', { event: 'spawn' }, ({ payload }) => {
       spawnText(payload.text, payload.nickname);
@@ -952,20 +1243,19 @@ function initSupabase() {
       showNotification(payload.nickname, 'destroy_all');
     })
     .on('broadcast', { event: 'thanos_toggle' }, ({ payload }) => {
+      // 전체 유저 타노스 모드 동기화
       thanosMode = payload.on;
       const btn = document.getElementById('thanosToggle');
       btn.classList.toggle('active', thanosMode);
-      btn.textContent = thanosMode ? LANG[lang].thanosOn : LANG[lang].thanosOff;
+      if (!btn.disabled) btn.textContent = thanosMode ? LANG[lang].thanosOn : LANG[lang].thanosOff;
       addThanosLog(payload.nickname, payload.on);
     })
-    // Step 4: Presence sync → update online count + collect nicknames
     .on('presence', { event: 'sync' }, () => {
       const state = room.presenceState();
       const nicks = [];
       Object.values(state).forEach(presences => {
         presences.forEach(p => { if (p.nickname) nicks.push(p.nickname); });
       });
-      // put self first
       _presenceNicks = [window._nickname, ...nicks.filter(n => n !== window._nickname)];
       updateOnlineCount(_presenceNicks.length);
       if (document.getElementById('presenceDropdown').classList.contains('open')) {
@@ -974,13 +1264,11 @@ function initSupabase() {
     })
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
-        // Step 4: Track self in presence
         room.track({ nickname: window._nickname });
       }
     });
 }
 </script>
-<!-- ── INSERT BEFORE </body>: Supabase CDN ── -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="initSupabase()"></script>
 </body>
 </html>
