@@ -90,6 +90,146 @@ html, body {
 }
 .langBtn.active { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.85); }
 
+/* ── THEME TOGGLE ── */
+#themeToggle {
+  display: flex;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  overflow: hidden;
+  pointer-events: all;
+  gap: 0;
+}
+.themeBtn {
+  width: 22px;
+  height: 22px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  position: relative;
+}
+#themeDark {
+  background: #0d0d1a;
+}
+#themeDark.active {
+  background: #1a1a30;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.25);
+}
+#themeLight {
+  background: #c8c4bc;
+}
+#themeLight.active {
+  background: #f0ede8;
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,0.2);
+}
+
+/* ── LIGHT MODE ── */
+html.light, html.light body, html.light #app {
+  background: #f0ede8;
+}
+html.light #topBar {
+  background: linear-gradient(to bottom, rgba(240,237,232,0.97) 60%, transparent);
+}
+html.light #panel {
+  background: linear-gradient(to top, rgba(240,237,232,0.99) 55%, transparent);
+}
+html.light #title {
+  color: rgba(0,0,0,0.25);
+}
+html.light #onlineCount, html.light #nickname {
+  color: rgba(0,0,0,0.4);
+}
+html.light #langToggle {
+  border-color: rgba(0,0,0,0.12);
+  background: rgba(0,0,0,0.03);
+}
+html.light .langBtn {
+  color: rgba(0,0,0,0.3);
+}
+html.light .langBtn.active {
+  background: rgba(0,0,0,0.08);
+  color: rgba(0,0,0,0.82);
+}
+html.light #themeToggle {
+  border-color: rgba(0,0,0,0.15);
+}
+html.light #infoBtn {
+  border-color: rgba(0,0,0,0.12);
+  color: rgba(0,0,0,0.35);
+}
+html.light #infoBtn:hover {
+  color: rgba(0,0,0,0.75);
+  border-color: rgba(0,0,0,0.3);
+}
+html.light #textInput {
+  background: rgba(0,0,0,0.05);
+  border-color: rgba(0,0,0,0.12);
+  color: #1a1a1a;
+}
+html.light #textInput::placeholder {
+  color: rgba(0,0,0,0.22);
+}
+html.light #textInput:focus {
+  border-color: rgba(200,50,30,0.4);
+}
+html.light .modeBtn {
+  border-color: rgba(0,0,0,0.1);
+  color: rgba(0,0,0,0.38);
+}
+html.light .modeBtn.active {
+  background: rgba(0,0,0,0.07);
+  border-color: rgba(0,0,0,0.22);
+  color: rgba(0,0,0,0.85);
+}
+html.light .modeBtn:hover {
+  border-color: rgba(0,0,0,0.2);
+  color: rgba(0,0,0,0.6);
+}
+html.light .btn {
+  border-color: rgba(0,0,0,0.13);
+  background: rgba(0,0,0,0.04);
+  color: rgba(0,0,0,0.6);
+}
+html.light .btn:hover {
+  background: rgba(0,0,0,0.09);
+  color: #000;
+}
+html.light .btn.danger {
+  border-color: rgba(200,40,40,0.3);
+  background: rgba(200,30,30,0.05);
+  color: rgba(180,60,50,0.88);
+}
+html.light .btn.danger:hover {
+  background: rgba(200,30,30,0.12);
+  color: #c0392b;
+}
+html.light #lockBtn.active {
+  background: rgba(180,140,0,0.12);
+  border-color: rgba(180,140,0,0.5);
+  color: rgba(140,100,0,1);
+  box-shadow: 0 0 8px rgba(180,140,0,0.2);
+}
+html.light #hint {
+  color: rgba(0,0,0,0.2);
+}
+html.light #thanosToggle {
+  border-color: rgba(100,60,200,0.2);
+  color: rgba(90,50,180,0.45);
+}
+html.light #thanosToggle:hover {
+  border-color: rgba(100,60,200,0.4);
+  color: rgba(90,50,180,0.72);
+}
+html.light #thanosToggle.active {
+  background: rgba(90,40,200,0.1);
+  border-color: rgba(130,80,220,0.5);
+  color: rgba(80,40,180,0.92);
+  box-shadow: 0 0 10px rgba(100,50,200,0.15);
+}
+html.light #thanosCooldown {
+  color: rgba(100,60,200,0.65);
+}
+
 /* ── INFO ICON ── */
 #infoWrap {
   position: relative;
@@ -157,11 +297,24 @@ html, body {
   gap: 10px;
 }
 
+/* mode row */
+#modeRow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
 /* mode buttons */
 #modeBar {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+  flex: 1;
+}
+
+#lockBtn {
+  margin-left: 14px;
+  flex-shrink: 0;
 }
 .modeBtn {
   padding: 4px clamp(9px, 1.8vw, 14px);
@@ -245,7 +398,7 @@ html, body {
   font-size: 14px;
   text-transform: none;
   letter-spacing: 0;
-  padding: 8px 12px;
+  padding: 5px 11px;
 }
 #lockBtn.active {
   background: rgba(255,220,50,0.15);
@@ -609,6 +762,10 @@ html, body {
       <div id="thanosCooldown"></div>
     </div>
     <div id="topRight">
+      <div id="themeToggle">
+        <button class="themeBtn" id="themeDark" title="Dark mode"></button>
+        <button class="themeBtn" id="themeLight" title="Light mode"></button>
+      </div>
       <div id="langToggle">
         <button class="langBtn active" data-lang="ko">한국어</button>
         <button class="langBtn" data-lang="en">Eng</button>
@@ -622,12 +779,14 @@ html, body {
 
   <div id="stickyContainer"></div>
   <div id="panel">
-    <div id="modeBar"></div>
+    <div id="modeRow">
+      <div id="modeBar"></div>
+      <button class="btn" id="lockBtn" title="잠금 메시지">🔒</button>
+    </div>
     <div id="inputRow">
       <textarea id="textInput" rows="2" spellcheck="false"></textarea>
       <div id="btnCol">
         <button class="btn" id="spawnBtn"></button>
-        <button class="btn" id="lockBtn" title="잠금 메시지">🔒</button>
         <button class="btn danger" id="destroyBtn"></button>
       </div>
     </div>
@@ -787,6 +946,33 @@ document.querySelectorAll('.langBtn').forEach(b => {
 });
 
 applyLang();
+
+/* ── THEME TOGGLE ── */
+let _isLight = false;
+const _themeDarkBtn = document.getElementById('themeDark');
+const _themeLightBtn = document.getElementById('themeLight');
+
+function applyTheme(light) {
+  _isLight = light;
+  if (light) {
+    document.documentElement.classList.add('light');
+    _themeDarkBtn.classList.remove('active');
+    _themeLightBtn.classList.add('active');
+  } else {
+    document.documentElement.classList.remove('light');
+    _themeDarkBtn.classList.add('active');
+    _themeLightBtn.classList.remove('active');
+  }
+  // flush canvas background
+  try {
+    ctx.fillStyle = _isLight ? 'rgba(240,237,232,1)' : 'rgba(7,7,13,1)';
+    ctx.fillRect(0, 0, W, H);
+  } catch(e) {}
+}
+
+_themeDarkBtn.addEventListener('click', () => applyTheme(false));
+_themeLightBtn.addEventListener('click', () => applyTheme(true));
+applyTheme(false);
 
 /* ── CANVAS SETUP ── */
 const canvas = document.getElementById('canvas');
@@ -1169,7 +1355,7 @@ document.addEventListener('keydown', e => {
 
 /* ── RENDER LOOP ── */
 function loop() {
-  ctx.fillStyle='rgba(7,7,13,0.22)';
+  ctx.fillStyle = _isLight ? 'rgba(240,237,232,0.22)' : 'rgba(7,7,13,0.22)';
   ctx.fillRect(0,0,W,H);
   particles = particles.filter(p=>p.alive);
   particles.forEach(p=>{p.update();p.draw();});
