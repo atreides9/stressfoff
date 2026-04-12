@@ -273,8 +273,8 @@ html, body {
 }
 #stickyContainer::-webkit-scrollbar { display: none; }
 .sticky-msg {
-  background: rgba(255,220,50,0.07);
-  border: 1px solid rgba(255,220,50,0.22);
+  background: hsla(var(--nick-hue, 50), 80%, 60%, 0.07);
+  border: 1px solid hsla(var(--nick-hue, 50), 80%, 60%, 0.22);
   border-radius: 8px;
   padding: 8px 11px;
   pointer-events: auto;
@@ -283,16 +283,16 @@ html, body {
 }
 .sticky-msg.mine {
   cursor: pointer;
-  border-color: rgba(255,220,50,0.42);
+  border-color: hsla(var(--nick-hue, 50), 80%, 60%, 0.42);
 }
 .sticky-msg.mine:hover {
-  background: rgba(255,220,50,0.15);
-  border-color: rgba(255,220,50,0.7);
+  background: hsla(var(--nick-hue, 50), 80%, 60%, 0.15);
+  border-color: hsla(var(--nick-hue, 50), 80%, 60%, 0.7);
 }
 .sticky-owner {
   font-size: 9px;
   font-family: 'Courier New', monospace;
-  color: rgba(255,220,50,0.45);
+  color: hsla(var(--nick-hue, 50), 80%, 70%, 0.6);
   letter-spacing: 0.8px;
   text-transform: uppercase;
   margin-bottom: 4px;
@@ -300,7 +300,7 @@ html, body {
 .sticky-text {
   font-family: 'Georgia', serif;
   font-size: clamp(11px, 1.4vw, 13px);
-  color: rgba(255,220,50,0.88);
+  color: hsla(var(--nick-hue, 50), 80%, 75%, 0.92);
   line-height: 1.45;
   white-space: pre-wrap;
 }
@@ -712,19 +712,22 @@ const modeKeys = ['explode','burn','void','shatter'];
     '기가막힌','어처구니없는','황홀한','찐한','눈물나는','미칠것같은','아찔한','뒤통수맞은',
     '소름돋는','오글거리는','띵한','얼떨떨한','통쾌한','억장무너지는','입틀막','현타온',
     '감격스러운','알수없는','애매한','민망스러운','씁쓸한','찜찜한','뭔가이상한',
-    '넋나간','피곤죽겠는','설레발치는','자책하는','모르겠는','멍때리는','어색한'
+    '넋나간','피곤죽겠는','설레발치는','자책하는','모르겠는','멍때리는','어색한',
+    '신나는','즐거운','활발한','상쾌한','기쁜','밝은','유쾌한','상냥한','따뜻한','다정한',
+    '사랑스러운','반가운','든든한','힘찬','씩씩한','생생한','귀여운','자신만만한','당당한',
+    '훈훈한','포근한','풍성한','넉넉한','두근두근한','설레발치는','상큼한','발랄한','명랑한'
   ];
   const NOUNS = [
-    '냉장고','두부','연필깎이','부처님','슬리퍼','에어팟','택배기사','고양이',
+    '냉장고','두부','연필깎이','부처님','슬리퍼','택배기사','고양이',
     '세탁기','전봇대','참외','맥북','우산','국밥','클립','변기','리모컨','볼펜',
     '멸치','마우스패드','이어폰','공기청정기','고구마','쓰레기통','프린터','수건',
     '삼겹살','치약','버스기사','양말',
     '김치찌개','순두부찌개','돈까스','육회','고등어구이','불닭','빨뚜','새로',
-    '떡볶이','라볶이','치킨','곱창','막창','연어회','참치회','낙지볶음',
+    '떡볶이','치킨','곱창','막창','연어회','참치회','낙지볶음',
     '된장찌개','부대찌개','감자탕','설렁탕','해장국','비빔밥','냉면','막국수',
     '쭈꾸미','오삼불고기','제육볶음','닭갈비','갈비탕','순대국','콩나물국',
     '파전','녹두전','동동주','막걸리','소맥','하이볼','아이스아메리카노',
-    '붕어빵','호떡','국화빵','타코야키','마라탕','마라샹궈','훠궈'
+    '붕어빵','호떡','국화빵','타코야키','마라탕','훠궈'
   ];
   const stored = sessionStorage.getItem('obliterate_nickname');
   let nick;
@@ -1034,6 +1037,36 @@ function destroyAll(owner) {
   }
 }
 
+/* ── NICK COLOR ── */
+const _nickColorMap = {};
+function getNickHue(nick) {
+  if (_nickColorMap[nick] !== undefined) return _nickColorMap[nick];
+  const hues = [50, 200, 120, 280, 10, 160, 320, 30, 180, 260, 90, 340];
+  let hash = 0;
+  for (let i = 0; i < nick.length; i++) hash = (hash * 31 + nick.charCodeAt(i)) >>> 0;
+  _nickColorMap[nick] = hues[hash % hues.length];
+  return _nickColorMap[nick];
+}
+
+/* ── SPAM LIMIT ── */
+let _lastSendTime = 0;
+const SEND_COOLDOWN_MS = 30000;
+
+function showSpamWarning(sec) {
+  const el = document.createElement('div');
+  el.className = 'ghost-notif';
+  el.textContent = lang === 'ko' ? `${sec}초 후에 다시 보낼 수 있어요` : `Please wait ${sec}s`;
+  document.getElementById('app').appendChild(el);
+  requestAnimationFrame(() => {
+    el.style.opacity = '1';
+    setTimeout(() => {
+      el.style.transition = 'opacity 0.3s';
+      el.style.opacity = '0';
+      setTimeout(() => el.remove(), 300);
+    }, 2000);
+  });
+}
+
 /* ── LOCK / STICKY MESSAGES ── */
 let _locked = false;
 
@@ -1045,6 +1078,13 @@ document.getElementById('lockBtn').addEventListener('click', () => {
 
 function sendMessage(text) {
   if (!text.trim()) return;
+  const now = Date.now();
+  if (now - _lastSendTime < SEND_COOLDOWN_MS) {
+    const remaining = Math.ceil((SEND_COOLDOWN_MS - (now - _lastSendTime)) / 1000);
+    showSpamWarning(remaining);
+    return;
+  }
+  _lastSendTime = now;
   if (_locked) {
     const id = Date.now() + '_' + Math.random().toString(36).slice(2);
     addStickyMessage(text, window._nickname, id);
@@ -1071,6 +1111,7 @@ function addStickyMessage(text, owner, id) {
   const container = document.getElementById('stickyContainer');
   const el = document.createElement('div');
   el.className = 'sticky-msg' + (owner === window._nickname ? ' mine' : '');
+  el.style.setProperty('--nick-hue', getNickHue(owner));
   el.dataset.id = id;
   el.innerHTML = `<div class="sticky-owner">${owner}</div><div class="sticky-text">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div><div class="sticky-delete-hint">클릭하여 삭제</div>`;
   if (owner === window._nickname) {
