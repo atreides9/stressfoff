@@ -767,6 +767,11 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
 /* ── MOBILE: 키보드 팝업 시 버튼 밀림 방지 ── */
 @media (max-width: 414px) {
   #title { display: none; }
+  #topRight {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -819,8 +824,8 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
         <span id="themeSwitchKnob">🌙</span>
       </button>
       <div id="langToggle">
-        <button class="langBtn active" data-lang="ko">한국어</button>
-        <button class="langBtn" data-lang="en">Eng</button>
+        <button class="langBtn active" data-lang="ko">KO</button>
+        <button class="langBtn" data-lang="en">EN</button>
       </div>
       <div id="infoWrap">
         <button id="infoBtn">ℹ</button>
