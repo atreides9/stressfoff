@@ -765,6 +765,10 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
 }
 
 /* ── MOBILE: 키보드 팝업 시 버튼 밀림 방지 ── */
+@media (max-width: 414px) {
+  #title { display: none; }
+}
+
 @media (max-width: 480px) {
   /* iOS Safari auto-zoom 방지: font-size >= 16px 강제 */
   #textInput {
