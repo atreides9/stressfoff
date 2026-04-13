@@ -877,6 +877,8 @@ const LANG = {
     thanosLogOn: (nick) => `${nick}님이 타노스 모드를 켰습니다`,
     thanosLogOff: (nick) => `${nick}님이 타노스 모드를 껐습니다`,
     thanosBlocked: (sec) => `🔱 타노스 남용 감지! ${sec}초 후 해제됩니다`,
+    thanosDailyLimit: '🔱 오늘 타노스 모드를 이미 3번 사용했습니다 (내일 초기화)',
+    thanosAutoOff: (nick) => `${nick}님의 타노스 모드가 자동 해제되었습니다`,
     introTitle: 'OBLITERATE',
     introDesc: '스트레스를 글자로 소환하고\n마우스로 파괴하세요.',
     introShortcutsTitle: '단축키',
@@ -887,7 +889,7 @@ const LANG = {
       { key: 'Ctrl+4', desc: '❄ 파쇄 모드로 전부 파괴' },
     ],
     introStartBtn: '시작하기',
-    tooltipContent: 'OBLITERATE\n스트레스 해소 앱\n\n글자를 소환하고 마우스로 파괴하세요\n\nCtrl+1  💥 폭발\nCtrl+2  🔥 연소\nCtrl+3  🌀 소멸\nCtrl+4  ❄  파쇄',
+    tooltipContent: 'OBLITERATE\n스트레스 해소 앱\n\n글자를 소환하고 마우스로 파괴하세요\n\nCtrl+1  💥 폭발\nCtrl+2  🔥 연소\nCtrl+3  🌀 소멸\nCtrl+4  ❄  파쇄\n\n🔱 타노스 모드\n누구의 글자든 파괴 가능\n하루 3회 · ON 후 1분 지속',
   },
   en: {
     modes: ['💥 Explode','🔥 Burn','🌀 Void','❄ Shatter'],
@@ -901,6 +903,8 @@ const LANG = {
     thanosLogOn: (nick) => `${nick} enabled Thanos mode`,
     thanosLogOff: (nick) => `${nick} disabled Thanos mode`,
     thanosBlocked: (sec) => `🔱 Thanos abuse detected! Unlocks in ${sec}s`,
+    thanosDailyLimit: '🔱 Daily Thanos limit reached — 3 uses/day (resets tomorrow)',
+    thanosAutoOff: (nick) => `${nick}'s Thanos mode ended automatically`,
     introTitle: 'OBLITERATE',
     introDesc: 'Spawn your stress as text\nand destroy it with your cursor.',
     introShortcutsTitle: 'Shortcuts',
@@ -911,7 +915,7 @@ const LANG = {
       { key: 'Ctrl+4', desc: '❄  Destroy all — Shatter' },
     ],
     introStartBtn: 'Start',
-    tooltipContent: 'OBLITERATE\nStress Relief App\n\nSpawn text and destroy it\nwith your cursor\n\nCtrl+1  💥 Explode\nCtrl+2  🔥 Burn\nCtrl+3  🌀 Void\nCtrl+4  ❄  Shatter',
+    tooltipContent: 'OBLITERATE\nStress Relief App\n\nSpawn text and destroy it\nwith your cursor\n\nCtrl+1  💥 Explode\nCtrl+2  🔥 Burn\nCtrl+3  🌀 Void\nCtrl+4  ❄  Shatter\n\n🔱 Thanos Mode\nDestroy anyone\'s text\n3×/day · lasts 1 min',
   }
 };
 
@@ -1216,13 +1220,13 @@ function spawnText(raw, owner) {
 
   const maxCharsInLine = Math.max(...lines.map(l => [...l].length));
 
-  const maxFs = W < 500 ? 36 : 48;
+  const maxFs = W < 500 ? 24 : 32;
   let fs = Math.min(
     Math.floor(availW / Math.max(maxCharsInLine * 0.62, 1)),
     Math.floor(availH / (lines.length * 1.55)),
     maxFs
   );
-  fs = Math.max(18, Math.min(fs, maxFs));
+  fs = Math.max(12, Math.min(fs, maxFs));
 
   const lineH = fs * 1.5;
   const totalTextH = lines.length * lineH;
@@ -1432,9 +1436,7 @@ spawnText(lastText);
 loop();
 
 /* ── THANOS TOGGLE ── */
-const _thanosPressLog = [];
-let _thanosBlockedUntil = 0;
-let _thanosBlockTimer = null;
+let _thanosAutoOffTimer = null;
 
 function setThanosCooldownVisible(visible, text) {
   const cd = document.getElementById('thanosCooldown');
@@ -1446,70 +1448,78 @@ function setThanosCooldownVisible(visible, text) {
   }
 }
 
-document.getElementById('thanosToggle').addEventListener('click', () => {
-  const now = Date.now();
+function getThanosUsesToday() {
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const stored = JSON.parse(localStorage.getItem('thanosUsage') || '{}');
+    if (stored.date !== today) return 0;
+    return stored.count || 0;
+  } catch (e) { return 0; }
+}
 
-  if (now < _thanosBlockedUntil) {
-    const sec = Math.ceil((_thanosBlockedUntil - now) / 1000);
-    addThanosLog('⚠', LANG[lang].thanosBlocked(sec));
+function incrementThanosUsesToday() {
+  const today = new Date().toISOString().slice(0, 10);
+  const count = getThanosUsesToday() + 1;
+  try { localStorage.setItem('thanosUsage', JSON.stringify({ date: today, count })); } catch (e) {}
+}
+
+document.getElementById('thanosToggle').addEventListener('click', () => {
+  const btn = document.getElementById('thanosToggle');
+
+  // ON 상태에서 클릭하면 수동 해제
+  if (thanosMode) {
+    clearTimeout(_thanosAutoOffTimer);
+    _thanosAutoOffTimer = null;
+    thanosMode = false;
+    btn.classList.remove('active');
+    btn.textContent = LANG[lang].thanosOff;
+    setThanosCooldownVisible(false);
+    addThanosLog(window._nickname, false);
+    if (window._room) {
+      window._room.send({ type: 'broadcast', event: 'thanos_toggle',
+        payload: { nickname: window._nickname, on: false } });
+    }
     return;
   }
 
-  // 1분 이내 클릭만 남기기
-  const oneMinAgo = now - 60 * 1000;
-  while (_thanosPressLog.length && _thanosPressLog[0] < oneMinAgo) _thanosPressLog.shift();
-  _thanosPressLog.push(now);
+  // 하루 3회 제한 확인
+  if (getThanosUsesToday() >= 3) {
+    addThanosLog('⚠', LANG[lang].thanosDailyLimit);
+    return;
+  }
 
-  // 1분 내 3회 이상이면 3분 차단
-  if (_thanosPressLog.length >= 3) {
-    _thanosBlockedUntil = now + 3 * 60 * 1000;
-    _thanosPressLog.length = 0;
+  // 타노스 모드 ON
+  incrementThanosUsesToday();
+  thanosMode = true;
+  btn.classList.add('active');
+  addThanosLog(window._nickname, true);
+  if (window._room) {
+    window._room.send({ type: 'broadcast', event: 'thanos_toggle',
+      payload: { nickname: window._nickname, on: true } });
+  }
 
-    if (thanosMode) {
+  // 1분 후 자동 해제
+  const autoOffAt = Date.now() + 60 * 1000;
+  const tickAutoOff = () => {
+    const rem = Math.ceil((autoOffAt - Date.now()) / 1000);
+    if (rem <= 0) {
+      _thanosAutoOffTimer = null;
       thanosMode = false;
-      const btn = document.getElementById('thanosToggle');
       btn.classList.remove('active');
       btn.textContent = LANG[lang].thanosOff;
+      setThanosCooldownVisible(false);
+      addThanosLog('🔱', LANG[lang].thanosAutoOff(window._nickname));
       if (window._room) {
         window._room.send({ type: 'broadcast', event: 'thanos_toggle',
           payload: { nickname: window._nickname, on: false } });
       }
+    } else {
+      btn.textContent = `🔱 ${rem}s`;
+      setThanosCooldownVisible(true, lang === 'ko' ? `자동 해제까지 ${rem}초` : `Auto-off in ${rem}s`);
+      _thanosAutoOffTimer = setTimeout(tickAutoOff, 1000);
     }
-
-    const btn = document.getElementById('thanosToggle');
-    btn.disabled = true;
-    btn.style.opacity = '0.4';
-
-    const tick = () => {
-      const rem = Math.ceil((_thanosBlockedUntil - Date.now()) / 1000);
-      if (rem <= 0) {
-        btn.disabled = false;
-        btn.style.opacity = '';
-        btn.textContent = LANG[lang].thanosOff;
-        setThanosCooldownVisible(false);
-        _thanosBlockTimer = null;
-      } else {
-        btn.textContent = `🔱 ${rem}s`;
-        setThanosCooldownVisible(true, lang === 'ko' ? `남용 감지 — ${rem}초 후 해제` : `Abuse detected — ${rem}s left`);
-        _thanosBlockTimer = setTimeout(tick, 1000);
-      }
-    };
-    tick();
-    addThanosLog('⚠', LANG[lang].thanosBlocked(180));
-    return;
-  }
-
-  thanosMode = !thanosMode;
-  const btn = document.getElementById('thanosToggle');
-  btn.classList.toggle('active', thanosMode);
-  btn.textContent = thanosMode ? LANG[lang].thanosOn : LANG[lang].thanosOff;
-  addThanosLog(window._nickname, thanosMode);
-  if (window._room) {
-    window._room.send({
-      type: 'broadcast', event: 'thanos_toggle',
-      payload: { nickname: window._nickname, on: thanosMode }
-    });
-  }
+  };
+  _thanosAutoOffTimer = setTimeout(tickAutoOff, 1000);
 });
 
 /* ── THANOS LOG ── */
