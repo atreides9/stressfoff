@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-visual">
 <title>OBLITERATE</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -762,6 +762,31 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
   background: rgba(110,50,240,0.22);
   border-color: rgba(180,120,255,0.5);
   color: rgba(220,190,255,1);
+}
+
+/* ── MOBILE: 키보드 팝업 시 버튼 밀림 방지 ── */
+@media (max-width: 480px) {
+  /* iOS Safari auto-zoom 방지: font-size >= 16px 강제 */
+  #textInput {
+    font-size: 16px;
+  }
+  /* 버튼 패딩 축소 */
+  .btn {
+    padding: 7px 8px;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+  }
+  #lockBtn {
+    padding: 5px 8px;
+    font-size: 13px;
+    margin-left: 8px;
+  }
+  #btnCol {
+    gap: 4px;
+  }
+  #inputRow {
+    gap: 6px;
+  }
 }
 </style>
 </head>
