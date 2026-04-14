@@ -369,23 +369,25 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
   gap: 8px;
   align-items: flex-end;
   width: 100%;
+  min-width: 0;
 }
 
 #textInput {
   flex: 1;
   min-width: 0;
+  width: 0; /* flex 안에서 진짜 반응형이 되도록 */
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 8px;
   color: #fff;
-  font-size: clamp(13px, 2vw, 17px);
+  font-size: clamp(13px, 1vw + 7px, 17px);
   padding: 9px 13px;
   outline: none;
   font-family: 'Georgia', serif;
   letter-spacing: 1.2px;
   resize: none;
   overflow-y: auto;
-  max-height: clamp(80px, 15vh, 140px);
+  max-height: clamp(72px, 14vh, 140px);
   line-height: 1.5;
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.1) transparent;
@@ -582,7 +584,7 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
   pointer-events: none;
   z-index: 99;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, top 0.15s ease;
   white-space: nowrap;
 }
 
@@ -788,8 +790,9 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
   display: none;
   position: absolute;
   bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
+  left: auto;
+  right: 0;
+  transform: none;
   background: rgba(20,20,28,0.96);
   border: 1px solid rgba(255,255,255,0.13);
   border-radius: 10px;
@@ -829,26 +832,90 @@ html.light #colorPalettePopup {
 }
 html.light .colorBtn.active { border-color: rgba(0,0,0,0.7); }
 
-/* ── MOBILE: 키보드 팝업 시 버튼 밀림 방지 ── */
-@media (max-width: 414px) {
-  #title { display: none; }
-  #topRight {
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
+/* ── RESPONSIVE BREAKPOINTS ── */
+
+/* ── 1024px 이하 (태블릿) ── */
+@media (max-width: 1024px) {
+  #panel {
+    padding-left: clamp(12px, 2.5vw, 24px);
+    padding-right: clamp(12px, 2.5vw, 24px);
+  }
+  .modeBtn {
+    font-size: clamp(9px, 1vw + 2px, 11px);
+    padding: 4px clamp(8px, 1.5vw, 13px);
+  }
+  .btn {
+    font-size: clamp(9px, 0.9vw + 2px, 11px);
+    padding: 8px clamp(9px, 1.8vw, 16px);
   }
 }
 
+/* ── 768px 이하 (태블릿 세로 / 큰 폰 가로) ── */
+@media (max-width: 768px) {
+  #panel {
+    padding-left: clamp(10px, 2vw, 18px);
+    padding-right: clamp(10px, 2vw, 18px);
+    gap: 8px;
+  }
+  .modeBtn {
+    font-size: clamp(8px, 1.1vw + 1.5px, 10px);
+    padding: 3px clamp(7px, 1.3vw, 11px);
+  }
+  .btn {
+    font-size: clamp(8px, 1vw + 2px, 10px);
+    padding: 7px clamp(8px, 1.5vw, 14px);
+  }
+  #hint {
+    font-size: clamp(7px, 1vw + 0.5px, 9px);
+  }
+}
+
+/* ── 600px 이하 (폰 가로 / 작은 태블릿) ── */
+@media (max-width: 600px) {
+  #panel {
+    padding-left: 12px;
+    padding-right: 12px;
+    gap: 7px;
+  }
+  .modeBtn {
+    font-size: 9px;
+    padding: 3px 9px;
+  }
+  .btn {
+    font-size: 9px;
+    padding: 7px 9px;
+    letter-spacing: 0.6px;
+  }
+  #textInput {
+    font-size: clamp(13px, 2.4vw + 0.5px, 15px);
+    padding: 8px 11px;
+    max-height: clamp(68px, 13vh, 120px);
+  }
+  #colorPaletteWrap {
+    margin-left: 8px;
+  }
+  #btnCol {
+    gap: 5px;
+  }
+}
+
+/* ── 480px 이하 (폰 세로) ── */
 @media (max-width: 480px) {
   /* iOS Safari auto-zoom 방지: font-size >= 16px 강제 */
   #textInput {
     font-size: 16px;
+    padding: 8px 11px;
+    max-height: clamp(64px, 12vh, 110px);
   }
   /* 버튼 패딩 축소 */
   .btn {
     padding: 7px 8px;
     font-size: 9px;
     letter-spacing: 0.5px;
+  }
+  .modeBtn {
+    font-size: 9px;
+    padding: 3px 8px;
   }
   #colorPaletteWrap {
     margin-left: 8px;
@@ -862,16 +929,58 @@ html.light .colorBtn.active { border-color: rgba(0,0,0,0.7); }
     font-size: 13px;
     margin-left: 4px;
   }
-  #colorPalettePopup {
-    left: auto;
-    right: 0;
-    transform: none;
-  }
   #btnCol {
     gap: 4px;
   }
   #inputRow {
     gap: 6px;
+  }
+  #hint {
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+}
+
+/* ── 414px 이하 ── */
+@media (max-width: 414px) {
+  #title { display: none; }
+  #topRight {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+}
+
+/* ── 360px 이하 (소형 폰) ── */
+@media (max-width: 360px) {
+  #panel {
+    padding-left: 9px;
+    padding-right: 9px;
+    gap: 6px;
+  }
+  .btn {
+    padding: 6px 7px;
+    font-size: 8px;
+    letter-spacing: 0.3px;
+  }
+  .modeBtn {
+    font-size: 8px;
+    padding: 3px 6px;
+  }
+  #textInput {
+    font-size: 16px; /* iOS zoom 방지 유지 */
+    padding: 7px 9px;
+  }
+  #lockBtn {
+    margin-left: 3px;
+    padding: 4px 7px;
+  }
+  #colorPaletteWrap {
+    margin-left: 4px;
+  }
+  #hint {
+    font-size: 7px;
+    letter-spacing: 0.8px;
   }
 }
 </style>
@@ -1437,20 +1546,45 @@ const LOCKED_RATE_WINDOW_MS = 15000;
 const LOCKED_RATE_MAX = 10;
 const _lockedSendLog = [];
 
-function showSpamWarning(msg) {
+/* ── TOAST STACK ── */
+const _toastQueue = [];
+const TOAST_TOP_BASE = 56;
+const TOAST_STEP = 34;
+
+function _repositionToasts() {
+  _toastQueue.forEach((el, i) => {
+    el.style.top = (TOAST_TOP_BASE + i * TOAST_STEP) + 'px';
+  });
+}
+
+function showToast(text) {
+  while (_toastQueue.length >= 3) {
+    const oldest = _toastQueue.shift();
+    oldest.style.opacity = '0';
+    setTimeout(() => oldest.remove(), 200);
+  }
   const el = document.createElement('div');
   el.className = 'ghost-notif';
-  el.textContent = msg;
+  el.textContent = text;
+  el.style.top = (TOAST_TOP_BASE + _toastQueue.length * TOAST_STEP) + 'px';
   document.getElementById('app').appendChild(el);
+  _toastQueue.push(el);
   requestAnimationFrame(() => {
     el.style.opacity = '1';
     setTimeout(() => {
       el.style.transition = 'opacity 0.3s';
       el.style.opacity = '0';
-      setTimeout(() => el.remove(), 300);
+      setTimeout(() => {
+        el.remove();
+        const idx = _toastQueue.indexOf(el);
+        if (idx !== -1) _toastQueue.splice(idx, 1);
+        _repositionToasts();
+      }, 300);
     }, 2000);
   });
 }
+
+function showSpamWarning(msg) { showToast(msg); }
 
 function checkLockedRateLimit() {
   const now = Date.now();
@@ -1684,26 +1818,13 @@ function addThanosLog(nick, isOn) {
 /* ── GHOST NOTIFICATION ── */
 function showNotification(nick, eventType) {
   if (nick === window._nickname) return;
-  const el = document.createElement('div');
-  el.className = 'ghost-notif';
+  let text;
   if (lang === 'ko') {
-    el.textContent = eventType === 'spawn'
-      ? `${nick}이 소환했습니다`
-      : `${nick}이 전부 파괴했습니다`;
+    text = eventType === 'spawn' ? `${nick}이 소환했습니다` : `${nick}이 전부 파괴했습니다`;
   } else {
-    el.textContent = eventType === 'spawn'
-      ? `${nick} spawned`
-      : `${nick} destroyed all`;
+    text = eventType === 'spawn' ? `${nick} spawned` : `${nick} destroyed all`;
   }
-  document.getElementById('app').appendChild(el);
-  requestAnimationFrame(() => {
-    el.style.opacity = '1';
-    setTimeout(() => {
-      el.style.transition = 'opacity 0.3s';
-      el.style.opacity = '0';
-      setTimeout(() => el.remove(), 300);
-    }, 2000);
-  });
+  showToast(text);
 }
 
 /* ── ONLINE COUNT + PRESENCE ── */
@@ -1798,7 +1919,7 @@ function initSupabase() {
       showNotification(payload.nickname, 'spawn');
     })
     .on('broadcast', { event: 'destroy_all' }, ({ payload }) => {
-      if (payload.thanosMode) {
+      if (thanosMode) {
         glyphs.forEach(g => g.kill());
       } else {
         glyphs.filter(g => g.owner === payload.nickname).forEach(g => g.kill());
