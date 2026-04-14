@@ -1904,9 +1904,7 @@ if (!sessionStorage.getItem('obliterate_intro_seen')) {
 
 /* ── SUPABASE INIT ── */
 function initSupabase() {
-  const SUPABASE_URL = 'https://ksxzvjmbbsqllythprdq.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzeHp2am1iYnNxbGx5dGhwcmRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MTU0OTMsImV4cCI6MjA5MTQ5MTQ5M30.jDsK5sLJvRf97WQTjCbViHAltZwMDttf993wHVxliM0';
-  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const client = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
   const room = client.channel('obliterate-room', {
     config: { broadcast: { self: false } }
@@ -1969,12 +1967,16 @@ function initSupabase() {
       }
     })
     .subscribe((status) => {
+      console.log('[Supabase] channel status:', status);
       if (status === 'SUBSCRIBED') {
         room.track({ nickname: window._nickname });
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        console.error('[Supabase] connection failed:', status);
       }
     });
 }
 </script>
+<script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="initSupabase()"></script>
 </body>
 </html>
