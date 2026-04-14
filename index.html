@@ -335,8 +335,12 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
   flex: 1;
 }
 
-#lockBtn {
+#colorPaletteWrap {
   margin-left: 14px;
+  flex-shrink: 0;
+}
+#lockBtn {
+  margin-left: 6px;
   flex-shrink: 0;
 }
 .modeBtn {
@@ -764,29 +768,45 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
   color: rgba(220,190,255,1);
 }
 
-/* ── COLOR SELECTOR ── */
-#colorRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-#colorLabel {
-  font-family: 'Courier New', monospace;
-  font-size: 9px;
-  color: rgba(255,255,255,0.3);
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  white-space: nowrap;
+/* ── COLOR PALETTE POPUP ── */
+#colorPaletteWrap {
+  position: relative;
   flex-shrink: 0;
 }
-#colorBar {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
+#colorPaletteBtn {
+  font-size: 16px;
+  padding: 5px 8px;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: 0;
+}
+#colorPaletteBtn.active {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.3);
+}
+#colorPalettePopup {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20,20,28,0.96);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 10px;
+  padding: 8px 10px;
+  gap: 6px;
+  flex-direction: row;
   align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  z-index: 200;
+}
+#colorPalettePopup.open {
+  display: flex;
 }
 .colorBtn {
-  width: 16px; height: 16px;
+  width: 18px; height: 18px;
   border-radius: 50%;
   border: 2px solid transparent;
   cursor: pointer;
@@ -803,7 +823,10 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
 .colorBtn.rainbow {
   background: conic-gradient(red, orange, yellow, lime, cyan, blue, violet, red);
 }
-html.light #colorLabel { color: rgba(0,0,0,0.4); }
+html.light #colorPalettePopup {
+  background: rgba(245,243,238,0.97);
+  border-color: rgba(0,0,0,0.13);
+}
 html.light .colorBtn.active { border-color: rgba(0,0,0,0.7); }
 
 /* ── MOBILE: 키보드 팝업 시 버튼 밀림 방지 ── */
@@ -827,10 +850,22 @@ html.light .colorBtn.active { border-color: rgba(0,0,0,0.7); }
     font-size: 9px;
     letter-spacing: 0.5px;
   }
+  #colorPaletteWrap {
+    margin-left: 8px;
+  }
+  #colorPaletteBtn {
+    padding: 5px 8px;
+    font-size: 14px;
+  }
   #lockBtn {
     padding: 5px 8px;
     font-size: 13px;
-    margin-left: 8px;
+    margin-left: 4px;
+  }
+  #colorPalettePopup {
+    left: auto;
+    right: 0;
+    transform: none;
   }
   #btnCol {
     gap: 4px;
@@ -880,11 +915,11 @@ html.light .colorBtn.active { border-color: rgba(0,0,0,0.7); }
   <div id="panel">
     <div id="modeRow">
       <div id="modeBar"></div>
+      <div id="colorPaletteWrap">
+        <button class="btn" id="colorPaletteBtn" title="색상 선택">🎨</button>
+        <div id="colorPalettePopup"></div>
+      </div>
       <button class="btn" id="lockBtn" title="잠금 메시지">🔒</button>
-    </div>
-    <div id="colorRow">
-      <span id="colorLabel"></span>
-      <div id="colorBar"></div>
     </div>
     <div id="inputRow">
       <textarea id="textInput" rows="2" spellcheck="false"></textarea>
@@ -1015,34 +1050,53 @@ const modeKeys = ['explode','burn','void','shatter'];
 
 const COLOR_PICKS = ['#ff4757','#ff7f50','#ffd700','#2ed573','#54a0ff','#a29bfe','#ff6eb4','#ffffff'];
 
+function closePalette() {
+  document.getElementById('colorPalettePopup').classList.remove('open');
+  document.getElementById('colorPaletteBtn').classList.remove('active');
+}
+
 function initColorBar() {
-  const bar = document.getElementById('colorBar');
-  bar.innerHTML = '';
-  document.getElementById('colorLabel').textContent = lang === 'ko' ? '색상' : 'Color';
+  const popup = document.getElementById('colorPalettePopup');
+  const paletteBtn = document.getElementById('colorPaletteBtn');
+  popup.innerHTML = '';
+
+  const addColorBtn = (btn, pickFn) => {
+    btn.addEventListener('click', () => {
+      pickFn();
+      popup.querySelectorAll('.colorBtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      closePalette();
+    });
+    popup.appendChild(btn);
+  };
 
   const rainbowBtn = document.createElement('button');
   rainbowBtn.className = 'colorBtn rainbow' + (_userColor === null ? ' active' : '');
   rainbowBtn.title = lang === 'ko' ? '무지개' : 'Rainbow';
-  rainbowBtn.addEventListener('click', () => {
-    _userColor = null;
-    bar.querySelectorAll('.colorBtn').forEach(b => b.classList.remove('active'));
-    rainbowBtn.classList.add('active');
-  });
-  bar.appendChild(rainbowBtn);
+  addColorBtn(rainbowBtn, () => { _userColor = null; });
 
   COLOR_PICKS.forEach(color => {
     const btn = document.createElement('button');
     btn.className = 'colorBtn' + (_userColor === color ? ' active' : '');
     btn.style.backgroundColor = color;
     btn.title = color;
-    btn.addEventListener('click', () => {
-      _userColor = color;
-      bar.querySelectorAll('.colorBtn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-    bar.appendChild(btn);
+    addColorBtn(btn, () => { _userColor = color; });
   });
+
+  paletteBtn.onclick = (e) => {
+    e.stopPropagation();
+    const isOpen = popup.classList.contains('open');
+    popup.classList.toggle('open', !isOpen);
+    paletteBtn.classList.toggle('active', !isOpen);
+  };
 }
+
+// 팔레트 외부 클릭 시 닫기
+document.addEventListener('click', (e) => {
+  if (!document.getElementById('colorPaletteWrap').contains(e.target)) {
+    closePalette();
+  }
+});
 
 function applyLang() {
   const L = LANG[lang];
