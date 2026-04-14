@@ -764,6 +764,48 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
   color: rgba(220,190,255,1);
 }
 
+/* ── COLOR SELECTOR ── */
+#colorRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#colorLabel {
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+#colorBar {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.colorBtn {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+  outline: none;
+  padding: 0;
+}
+.colorBtn:hover { transform: scale(1.25); }
+.colorBtn.active {
+  border-color: rgba(255,255,255,0.88);
+  transform: scale(1.2);
+}
+.colorBtn.rainbow {
+  background: conic-gradient(red, orange, yellow, lime, cyan, blue, violet, red);
+}
+html.light #colorLabel { color: rgba(0,0,0,0.4); }
+html.light .colorBtn.active { border-color: rgba(0,0,0,0.7); }
+
 /* ── MOBILE: 키보드 팝업 시 버튼 밀림 방지 ── */
 @media (max-width: 414px) {
   #title { display: none; }
@@ -839,6 +881,10 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
     <div id="modeRow">
       <div id="modeBar"></div>
       <button class="btn" id="lockBtn" title="잠금 메시지">🔒</button>
+    </div>
+    <div id="colorRow">
+      <span id="colorLabel"></span>
+      <div id="colorBar"></div>
     </div>
     <div id="inputRow">
       <textarea id="textInput" rows="2" spellcheck="false"></textarea>
@@ -919,7 +965,8 @@ const LANG = {
   }
 };
 
-let lang = 'ko', mode = 'explode', thanosMode = false;
+let lang = 'ko', mode = 'explode', thanosMode = false, _thanosOwner = null;
+let _userColor = null; // null = rainbow
 const modeKeys = ['explode','burn','void','shatter'];
 
 // ── NICKNAME ──
@@ -966,6 +1013,37 @@ const modeKeys = ['explode','burn','void','shatter'];
   document.getElementById('nickname').textContent = nick;
 })();
 
+const COLOR_PICKS = ['#ff4757','#ff7f50','#ffd700','#2ed573','#54a0ff','#a29bfe','#ff6eb4','#ffffff'];
+
+function initColorBar() {
+  const bar = document.getElementById('colorBar');
+  bar.innerHTML = '';
+  document.getElementById('colorLabel').textContent = lang === 'ko' ? '색상' : 'Color';
+
+  const rainbowBtn = document.createElement('button');
+  rainbowBtn.className = 'colorBtn rainbow' + (_userColor === null ? ' active' : '');
+  rainbowBtn.title = lang === 'ko' ? '무지개' : 'Rainbow';
+  rainbowBtn.addEventListener('click', () => {
+    _userColor = null;
+    bar.querySelectorAll('.colorBtn').forEach(b => b.classList.remove('active'));
+    rainbowBtn.classList.add('active');
+  });
+  bar.appendChild(rainbowBtn);
+
+  COLOR_PICKS.forEach(color => {
+    const btn = document.createElement('button');
+    btn.className = 'colorBtn' + (_userColor === color ? ' active' : '');
+    btn.style.backgroundColor = color;
+    btn.title = color;
+    btn.addEventListener('click', () => {
+      _userColor = color;
+      bar.querySelectorAll('.colorBtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+    bar.appendChild(btn);
+  });
+}
+
 function applyLang() {
   const L = LANG[lang];
   const bar = document.getElementById('modeBar');
@@ -1005,11 +1083,13 @@ document.querySelectorAll('.langBtn').forEach(b => {
     document.querySelectorAll('.langBtn').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     applyLang();
+    initColorBar();
     spawnText(LANG[lang].defaultText);
   });
 });
 
 applyLang();
+initColorBar();
 
 /* ── THEME SWITCH ── */
 let _isLight = false;
@@ -1206,7 +1286,7 @@ function filterProfanity(text) {
 /* ── SPAWN TEXT (multiline) ── */
 let particles=[], glyphs=[], lastText=LANG[lang].defaultText;
 
-function spawnText(raw, owner) {
+function spawnText(raw, owner, userColor) {
   if (raw != null) lastText = raw;
   const text = filterProfanity((raw != null) ? raw : lastText);
   const spawnOwner = owner || window._nickname;
@@ -1216,8 +1296,11 @@ function spawnText(raw, owner) {
   const panelH = document.getElementById('panel').getBoundingClientRect().height;
   const safeTop = 56 + 16;
   const safeBottom = H - panelH - 16;
-  const safeLeft = W * 0.10;
-  const safeRight = W * 0.90;
+  const stickyRight = document.getElementById('stickyContainer').getBoundingClientRect().right;
+  const safeLeft = Math.min(stickyRight + 20, W * 0.35);
+  const safeRight = W * 0.95;
+  // effective color: use per-call override, else local _userColor, else rainbow
+  const effectiveColor = (userColor !== undefined) ? userColor : _userColor;
   const availW = safeRight - safeLeft;
   const availH = safeBottom - safeTop;
 
@@ -1265,7 +1348,8 @@ function spawnText(raw, owner) {
     chars.forEach((c, ci) => {
       const gx = cx + cws[ci] / 2;
       const gy = baseY;
-      const g = new Glyph(c, gx, gy, fs, COLORS[(startLen + clusterIdx) % COLORS.length], spawnOwner);
+      const glyphColor = effectiveColor ? effectiveColor : COLORS[(startLen + clusterIdx) % COLORS.length];
+      const g = new Glyph(c, gx, gy, fs, glyphColor, spawnOwner);
       g.st = -(clusterIdx * 0.06);
       glyphs.push(g);
       cx += cws[ci];
@@ -1356,7 +1440,7 @@ function sendMessage(text) {
     if (window._room) {
       window._room.send({
         type: 'broadcast', event: 'spawn',
-        payload: { text, nickname: window._nickname, lang, mode }
+        payload: { text, nickname: window._nickname, lang, mode, userColor: _userColor }
       });
     }
     return;
@@ -1474,6 +1558,7 @@ document.getElementById('thanosToggle').addEventListener('click', () => {
     clearTimeout(_thanosAutoOffTimer);
     _thanosAutoOffTimer = null;
     thanosMode = false;
+    _thanosOwner = null;
     btn.classList.remove('active');
     btn.textContent = LANG[lang].thanosOff;
     setThanosCooldownVisible(false);
@@ -1494,6 +1579,7 @@ document.getElementById('thanosToggle').addEventListener('click', () => {
   // 타노스 모드 ON
   incrementThanosUsesToday();
   thanosMode = true;
+  _thanosOwner = window._nickname;
   btn.classList.add('active');
   addThanosLog(window._nickname, true);
   if (window._room) {
@@ -1508,6 +1594,7 @@ document.getElementById('thanosToggle').addEventListener('click', () => {
     if (rem <= 0) {
       _thanosAutoOffTimer = null;
       thanosMode = false;
+      _thanosOwner = null;
       btn.classList.remove('active');
       btn.textContent = LANG[lang].thanosOff;
       setThanosCooldownVisible(false);
@@ -1653,7 +1740,7 @@ function initSupabase() {
 
   room
     .on('broadcast', { event: 'spawn' }, ({ payload }) => {
-      spawnText(payload.text, payload.nickname);
+      spawnText(payload.text, payload.nickname, payload.userColor);
       showNotification(payload.nickname, 'spawn');
     })
     .on('broadcast', { event: 'destroy_all' }, ({ payload }) => {
@@ -1674,9 +1761,11 @@ function initSupabase() {
     .on('broadcast', { event: 'thanos_toggle' }, ({ payload }) => {
       // 전체 유저 타노스 모드 동기화
       thanosMode = payload.on;
+      _thanosOwner = payload.on ? payload.nickname : null;
       const btn = document.getElementById('thanosToggle');
       btn.classList.toggle('active', thanosMode);
       if (!btn.disabled) btn.textContent = thanosMode ? LANG[lang].thanosOn : LANG[lang].thanosOff;
+      if (!thanosMode) setThanosCooldownVisible(false);
       addThanosLog(payload.nickname, payload.on);
     })
     .on('presence', { event: 'sync' }, () => {
@@ -1686,6 +1775,19 @@ function initSupabase() {
         presences.forEach(p => { if (p.nickname) nicks.push(p.nickname); });
       });
       _presenceNicks = [window._nickname, ...nicks.filter(n => n !== window._nickname)];
+
+      // 타노스 소유자가 방을 나갔으면 타노스 자동 해제
+      if (_thanosOwner && _thanosOwner !== window._nickname && !_presenceNicks.includes(_thanosOwner)) {
+        if (_thanosAutoOffTimer) { clearTimeout(_thanosAutoOffTimer); _thanosAutoOffTimer = null; }
+        thanosMode = false;
+        _thanosOwner = null;
+        const btn = document.getElementById('thanosToggle');
+        btn.classList.remove('active');
+        if (!btn.disabled) btn.textContent = LANG[lang].thanosOff;
+        setThanosCooldownVisible(false);
+        addThanosLog('🔱', lang === 'ko' ? '타노스 사용자가 나갔습니다' : 'Thanos user left');
+      }
+
       updateOnlineCount(_presenceNicks.length);
       if (document.getElementById('presenceDropdown').classList.contains('open')) {
         renderPresenceDropdown();
