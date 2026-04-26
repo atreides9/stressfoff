@@ -1,6 +1,3 @@
-# Config with secrets
-config.js
-
 # Environment variables
 .env
 .env.local
