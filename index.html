@@ -1830,6 +1830,33 @@ function showNotification(nick, eventType) {
 /* ── ONLINE COUNT + PRESENCE ── */
 let _presenceNicks = [];
 
+function syncPresenceFromState(state) {
+  const nicks = [];
+  Object.values(state).forEach(presences => {
+    presences.forEach(p => { if (p.nickname) nicks.push(p.nickname); });
+  });
+  // 내 닉네임은 항상 맨 앞, 중복 제거
+  const others = nicks.filter(n => n !== window._nickname);
+  _presenceNicks = [window._nickname, ...others];
+
+  // 타노스 소유자가 방을 나갔으면 타노스 자동 해제
+  if (_thanosOwner && _thanosOwner !== window._nickname && !_presenceNicks.includes(_thanosOwner)) {
+    if (_thanosAutoOffTimer) { clearTimeout(_thanosAutoOffTimer); _thanosAutoOffTimer = null; }
+    thanosMode = false;
+    _thanosOwner = null;
+    const btn = document.getElementById('thanosToggle');
+    btn.classList.remove('active');
+    if (!btn.disabled) btn.textContent = LANG[lang].thanosOff;
+    setThanosCooldownVisible(false);
+    addThanosLog('🔱', lang === 'ko' ? '타노스 사용자가 나갔습니다' : 'Thanos user left');
+  }
+
+  updateOnlineCount(_presenceNicks.length);
+  if (document.getElementById('presenceDropdown').classList.contains('open')) {
+    renderPresenceDropdown();
+  }
+}
+
 function updateOnlineCount(count) {
   const el = document.getElementById('onlineCount');
   if (!el) return;
@@ -1943,28 +1970,16 @@ function initSupabase() {
     })
     .on('presence', { event: 'sync' }, () => {
       const state = room.presenceState();
-      const nicks = [];
-      Object.values(state).forEach(presences => {
-        presences.forEach(p => { if (p.nickname) nicks.push(p.nickname); });
-      });
-      _presenceNicks = [window._nickname, ...nicks.filter(n => n !== window._nickname)];
-
-      // 타노스 소유자가 방을 나갔으면 타노스 자동 해제
-      if (_thanosOwner && _thanosOwner !== window._nickname && !_presenceNicks.includes(_thanosOwner)) {
-        if (_thanosAutoOffTimer) { clearTimeout(_thanosAutoOffTimer); _thanosAutoOffTimer = null; }
-        thanosMode = false;
-        _thanosOwner = null;
-        const btn = document.getElementById('thanosToggle');
-        btn.classList.remove('active');
-        if (!btn.disabled) btn.textContent = LANG[lang].thanosOff;
-        setThanosCooldownVisible(false);
-        addThanosLog('🔱', lang === 'ko' ? '타노스 사용자가 나갔습니다' : 'Thanos user left');
-      }
-
-      updateOnlineCount(_presenceNicks.length);
-      if (document.getElementById('presenceDropdown').classList.contains('open')) {
-        renderPresenceDropdown();
-      }
+      console.log('[Presence] sync', state);
+      syncPresenceFromState(state);
+    })
+    .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+      console.log('[Presence] join', key, newPresences);
+      syncPresenceFromState(room.presenceState());
+    })
+    .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+      console.log('[Presence] leave', key, leftPresences);
+      syncPresenceFromState(room.presenceState());
     })
     .subscribe((status) => {
       console.log('[Supabase] channel status:', status);
