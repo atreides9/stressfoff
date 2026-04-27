@@ -302,7 +302,7 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
   inset: 0;
   width: 100%;
   height: 100%;
-  cursor: crosshair;
+  cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text y='28' font-size='28'>✊</text></svg>") 16 28, auto;
   display: block;
   touch-action: none;
 }
@@ -1301,8 +1301,13 @@ function setMouse(e) {
   const src = e.touches ? e.touches[0] : e;
   mouse.x = src.clientX; mouse.y = src.clientY;
 }
+const CURSOR_FIST   = "url(\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text y='28' font-size='28'>✊</text></svg>\") 16 28, auto";
+const CURSOR_FINGER = "url(\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text y='28' font-size='28'>🖕</text></svg>\") 16 28, auto";
+
 canvas.addEventListener('mousemove', setMouse);
 canvas.addEventListener('mouseleave', () => { mouse.x = -9999; mouse.y = -9999; });
+canvas.addEventListener('mousedown', () => { canvas.style.cursor = CURSOR_FINGER; });
+canvas.addEventListener('mouseup',   () => { canvas.style.cursor = CURSOR_FIST; });
 canvas.addEventListener('touchmove', e => { e.preventDefault(); setMouse(e); }, { passive: false });
 canvas.addEventListener('touchend', () => { mouse.x = -9999; mouse.y = -9999; });
 
