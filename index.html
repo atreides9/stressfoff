@@ -1854,9 +1854,11 @@ function spawnText(raw, owner, userColor) {
 function destroyAll(owner) {
   if (thanosMode) {
     glyphs.forEach(g => g.kill());
+    _spawnHistory = [];
   } else {
     const target = owner || window._nickname;
     glyphs.filter(g => g.owner === target).forEach(g => g.kill());
+    _spawnHistory = _spawnHistory.filter(s => s.nickname !== target);
   }
 }
 
@@ -1935,6 +1937,11 @@ function checkLockedRateLimit() {
 /* ── LOCK / STICKY MESSAGES ── */
 let _locked = false;
 
+/* ── STATE SYNC (신규/재입장 유저 동기화) ── */
+let _stickyList = [];    // [{text, nickname, id}]
+let _spawnHistory = [];  // [{text, nickname, userColor}]
+let _needsSync = true;   // 입장 시 상태 동기화 필요 여부
+
 document.getElementById('lockBtn').addEventListener('click', () => {
   _locked = !_locked;
   document.getElementById('lockBtn').classList.toggle('active', _locked);
@@ -1946,6 +1953,7 @@ function sendMessage(text) {
   if (_locked) {
     if (!checkLockedRateLimit()) return;
     const id = Date.now() + '_' + Math.random().toString(36).slice(2);
+    _stickyList.push({ text, nickname: window._nickname, id });
     addStickyMessage(text, window._nickname, id);
     if (window._room) {
       window._room.send({
@@ -1954,6 +1962,7 @@ function sendMessage(text) {
       });
     }
   } else {
+    _spawnHistory.push({ text, nickname: window._nickname, userColor: _userColor });
     spawnText(text);
     if (window._room) {
       window._room.send({
@@ -1976,6 +1985,7 @@ function addStickyMessage(text, owner, id) {
   if (owner === window._nickname) {
     el.addEventListener('click', () => {
       el.remove();
+      _stickyList = _stickyList.filter(s => s.id !== id);
       if (window._room) {
         window._room.send({ type: 'broadcast', event: 'sticky_remove', payload: { id } });
       }
@@ -2399,7 +2409,10 @@ function _enterServer(channelName, displayName) {
     document.getElementById('stickyContainer').innerHTML = '';
     _presenceNicks = [];
     updateOnlineCount(0);
+    _stickyList = [];
+    _spawnHistory = [];
   }
+  _needsSync = true;
 
   // 레지스트리 트래킹 갱신
   if (_registryRoom) {
@@ -2507,23 +2520,40 @@ function initSupabase(channelName) {
 
   room
     .on('broadcast', { event: 'spawn' }, ({ payload }) => {
+      _spawnHistory.push({ text: payload.text, nickname: payload.nickname, userColor: payload.userColor });
       spawnText(payload.text, payload.nickname, payload.userColor);
       showNotification(payload.nickname, 'spawn');
     })
     .on('broadcast', { event: 'destroy_all' }, ({ payload }) => {
       if (thanosMode) {
         glyphs.forEach(g => g.kill());
+        _spawnHistory = [];
       } else {
         glyphs.filter(g => g.owner === payload.nickname).forEach(g => g.kill());
+        _spawnHistory = _spawnHistory.filter(s => s.nickname !== payload.nickname);
       }
       showNotification(payload.nickname, 'destroy_all');
     })
     .on('broadcast', { event: 'sticky_add' }, ({ payload }) => {
+      _stickyList.push({ text: payload.text, nickname: payload.nickname, id: payload.id });
       addStickyMessage(payload.text, payload.nickname, payload.id);
     })
     .on('broadcast', { event: 'sticky_remove' }, ({ payload }) => {
+      _stickyList = _stickyList.filter(s => s.id !== payload.id);
       const el = document.querySelector(`[data-id="${payload.id}"]`);
       if (el) el.remove();
+    })
+    .on('broadcast', { event: 'state_sync' }, ({ payload }) => {
+      if (!_needsSync) return;
+      _needsSync = false;
+      _stickyList = payload.stickies || [];
+      _spawnHistory = payload.spawns || [];
+      _stickyList.forEach(s => {
+        if (!document.querySelector(`[data-id="${s.id}"]`)) {
+          addStickyMessage(s.text, s.nickname, s.id);
+        }
+      });
+      _spawnHistory.forEach(s => spawnText(s.text, s.nickname, s.userColor));
     })
     .on('broadcast', { event: 'thanos_toggle' }, ({ payload }) => {
       // 전체 유저 타노스 모드 동기화
@@ -2543,6 +2573,11 @@ function initSupabase(channelName) {
     .on('presence', { event: 'join' }, ({ key, newPresences }) => {
       console.log('[Presence] join', key, newPresences);
       syncPresenceFromState(room.presenceState());
+      // 신규 입장자에게 현재 상태 전송
+      room.send({
+        type: 'broadcast', event: 'state_sync',
+        payload: { stickies: _stickyList, spawns: _spawnHistory }
+      });
     })
     .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
       console.log('[Presence] leave', key, leftPresences);
