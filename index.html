@@ -740,11 +740,98 @@ html.light #currentServerBadge:hover {
   letter-spacing: 1.2px;
   margin-bottom: 22px;
 }
-#serverChoices {
+/* server list */
+#serverList {
+  margin-bottom: 10px;
+  max-height: 230px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.08) transparent;
+}
+#serverList::-webkit-scrollbar { width: 3px; }
+#serverList::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+.server-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: rgba(255,255,255,0.02);
+}
+.server-list-item:last-child { margin-bottom: 0; }
+.server-list-item:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.2);
+}
+.server-list-item.plaza { border-color: rgba(100,200,255,0.18); }
+.server-list-item.plaza:hover { background: rgba(60,160,255,0.07); border-color: rgba(100,200,255,0.44); }
+.server-list-item.current { border-color: rgba(255,220,50,0.28); background: rgba(255,220,50,0.03); }
+.server-list-item.current.plaza { border-color: rgba(255,220,50,0.3); }
+.server-list-name {
+  flex: 1;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  color: rgba(255,255,255,0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.server-list-item.plaza .server-list-name { color: rgba(140,215,255,0.88); }
+.server-list-count {
+  font-size: 9px;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 0.8px;
+  flex-shrink: 0;
+}
+.server-list-item.plaza .server-list-count { color: rgba(100,200,255,0.55); }
+.server-list-cur-badge {
+  font-size: 8px;
+  color: rgba(255,220,50,0.7);
+  border: 1px solid rgba(255,220,50,0.3);
+  border-radius: 8px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+  letter-spacing: 0.6px;
+}
+.server-list-empty {
+  font-size: 10px;
+  color: rgba(255,255,255,0.22);
+  letter-spacing: 1px;
+  text-align: center;
+  padding: 18px 0 12px;
+}
+/* actions row */
+#serverActions {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
+#joinDirectBtn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.28);
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s;
+}
+#joinDirectBtn:hover { color: rgba(255,255,255,0.6); }
+html.light .server-list-item { border-color: rgba(0,0,0,0.08); background: rgba(0,0,0,0.02); }
+html.light .server-list-item:hover { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.18); }
+html.light .server-list-item.plaza { border-color: rgba(0,120,200,0.18); }
+html.light .server-list-item.plaza:hover { background: rgba(0,120,200,0.05); border-color: rgba(0,120,200,0.4); }
+html.light .server-list-name { color: rgba(0,0,0,0.65); }
+html.light .server-list-item.plaza .server-list-name { color: rgba(0,100,200,0.85); }
+html.light .server-list-count { color: rgba(0,0,0,0.35); }
+html.light #joinDirectBtn { color: rgba(0,0,0,0.35); }
 .server-choice-btn {
   width: 100%;
   padding: 11px;
@@ -1231,10 +1318,12 @@ html.light .colorBtn.active { border-color: rgba(0,0,0,0.7); }
   <div id="serverBox">
     <div id="serverModalTitle">OBLITERATE</div>
     <div id="serverModalSub"></div>
-    <div id="serverChoices">
-      <button class="server-choice-btn plaza" id="plazaBtn"></button>
+    <div id="serverList">
+      <div id="serverListItems"></div>
+    </div>
+    <div id="serverActions">
       <button class="server-choice-btn create" id="createSrvBtn"></button>
-      <button class="server-choice-btn join-srv" id="joinSrvBtn"></button>
+      <button id="joinDirectBtn"></button>
     </div>
     <div id="serverForm">
       <div class="server-form-label" id="serverFormLabel"></div>
@@ -2167,6 +2256,8 @@ document.getElementById('introModal').addEventListener('click', e => {
 
 /* ── SERVER SELECTION ── */
 let _serverFormMode = null;
+let _registryRoom = null;
+let _serverList = [];
 
 function _hashStr(str) {
   let h = 5381;
@@ -2178,6 +2269,118 @@ function _getServerChannel(name, pw) {
   return 'obliterate-srv-' + _hashStr(name.trim().toLowerCase() + ':' + pw.trim());
 }
 
+/* ── REGISTRY: 전체 서버 목록 + 인원 수 추적 ── */
+function initRegistry() {
+  if (_registryRoom) {
+    // 이미 연결됨 - 현재 서버 정보만 갱신
+    if (window._serverDisplayName) {
+      _registryRoom.track({
+        nickname: window._nickname,
+        serverName: window._serverDisplayName,
+        isPlaza: window._channelName === 'obliterate-room'
+      });
+    }
+    return;
+  }
+  const client = window._supabaseClient;
+  _registryRoom = client.channel('obliterate-registry-v1');
+  _registryRoom
+    .on('presence', { event: 'sync' }, () => { syncServerList(); })
+    .on('presence', { event: 'join' }, () => { syncServerList(); })
+    .on('presence', { event: 'leave' }, () => { syncServerList(); })
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        if (window._serverDisplayName) {
+          _registryRoom.track({
+            nickname: window._nickname,
+            serverName: window._serverDisplayName,
+            isPlaza: window._channelName === 'obliterate-room'
+          });
+        }
+        syncServerList();
+      }
+    });
+}
+
+function syncServerList() {
+  if (!_registryRoom) return;
+  const state = _registryRoom.presenceState();
+  const map = {};
+  // 광장은 항상 최상단 고정
+  const plazaName = LANG[lang].srvPlazaName;
+  map['__plaza__'] = { name: plazaName, isPlaza: true, count: 0 };
+
+  Object.values(state).forEach(presences => {
+    presences.forEach(p => {
+      if (!p.serverName) return;
+      if (p.isPlaza) {
+        map['__plaza__'].count++;
+      } else {
+        if (!map[p.serverName]) map[p.serverName] = { name: p.serverName, isPlaza: false, count: 0 };
+        map[p.serverName].count++;
+      }
+    });
+  });
+
+  const plaza = map['__plaza__'];
+  delete map['__plaza__'];
+  const others = Object.values(map).sort((a, b) => b.count - a.count);
+  _serverList = [plaza, ...others];
+
+  if (!document.getElementById('serverModal').classList.contains('hidden') && !document.getElementById('serverForm').classList.contains('visible')) {
+    renderServerList();
+  }
+}
+
+function renderServerList() {
+  const itemsEl = document.getElementById('serverListItems');
+  if (!itemsEl) return;
+  itemsEl.innerHTML = '';
+
+  if (!_registryRoom) {
+    const el = document.createElement('div');
+    el.className = 'server-list-empty';
+    el.textContent = lang === 'ko' ? '서버 목록 불러오는 중...' : 'Loading servers...';
+    itemsEl.appendChild(el);
+    return;
+  }
+
+  _serverList.forEach(srv => {
+    const isCurrent = srv.name === window._serverDisplayName;
+    const item = document.createElement('div');
+    item.className = 'server-list-item' + (srv.isPlaza ? ' plaza' : '') + (isCurrent ? ' current' : '');
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'server-list-name';
+    nameEl.textContent = (srv.isPlaza ? '🏛  ' : '⚙  ') + srv.name;
+
+    const countEl = document.createElement('span');
+    countEl.className = 'server-list-count';
+    countEl.textContent = lang === 'ko' ? `${srv.count}명` : `${srv.count} online`;
+
+    item.appendChild(nameEl);
+    item.appendChild(countEl);
+
+    if (isCurrent) {
+      const badge = document.createElement('span');
+      badge.className = 'server-list-cur-badge';
+      badge.textContent = lang === 'ko' ? '접속 중' : 'here';
+      item.appendChild(badge);
+    }
+
+    item.addEventListener('click', () => {
+      if (srv.isPlaza) {
+        _enterServer('obliterate-room', LANG[lang].srvPlazaName);
+      } else {
+        _showServerForm('join', srv.name);
+      }
+    });
+
+    itemsEl.appendChild(item);
+  });
+}
+
+/* ── SERVER ENTER / SWITCH ── */
 function _enterServer(channelName, displayName) {
   const isSwitch = !!window._channelName;
   window._channelName = channelName;
@@ -2188,16 +2391,23 @@ function _enterServer(channelName, displayName) {
 
   document.getElementById('serverModal').classList.add('hidden');
 
-  // 기존 채널 연결 해제 후 재연결
   if (isSwitch && window._room) {
     window._room.unsubscribe();
     window._room = null;
-    // 캔버스 초기화
     glyphs = [];
     particles = [];
     document.getElementById('stickyContainer').innerHTML = '';
     _presenceNicks = [];
     updateOnlineCount(0);
+  }
+
+  // 레지스트리 트래킹 갱신
+  if (_registryRoom) {
+    _registryRoom.track({
+      nickname: window._nickname,
+      serverName: displayName,
+      isPlaza: channelName === 'obliterate-room'
+    });
   }
 
   if (window._supabaseReady || typeof window.supabase !== 'undefined') {
@@ -2213,28 +2423,42 @@ function _enterServer(channelName, displayName) {
 
 function reopenServerModal() {
   _hideServerForm();
+  renderServerList();
   document.getElementById('serverModal').classList.remove('hidden');
 }
 
-function _showServerForm(mode) {
+function _showServerForm(mode, prefillName) {
   _serverFormMode = mode;
-  document.getElementById('serverChoices').style.display = 'none';
+  document.getElementById('serverList').style.display = 'none';
+  document.getElementById('serverActions').style.display = 'none';
   document.getElementById('serverForm').classList.add('visible');
   const L = LANG[lang];
   document.getElementById('serverFormLabel').textContent = mode === 'create' ? L.srvCreateFormLabel : L.srvJoinFormLabel;
-  document.getElementById('srvNameInput').placeholder = L.srvNamePlaceholder;
   document.getElementById('srvPwInput').placeholder = L.srvPwPlaceholder;
   document.getElementById('srvCancelBtn').textContent = L.srvCancelBtn;
   document.getElementById('srvConfirmBtn').textContent = mode === 'create' ? L.srvCreateBtn : L.srvJoinBtn;
   document.getElementById('serverError').classList.remove('visible');
-  document.getElementById('srvNameInput').value = '';
+
+  const nameInput = document.getElementById('srvNameInput');
+  if (prefillName) {
+    nameInput.value = prefillName;
+    nameInput.disabled = true;
+    nameInput.placeholder = '';
+    document.getElementById('srvPwInput').focus();
+  } else {
+    nameInput.value = '';
+    nameInput.disabled = false;
+    nameInput.placeholder = L.srvNamePlaceholder;
+    nameInput.focus();
+  }
   document.getElementById('srvPwInput').value = '';
-  document.getElementById('srvNameInput').focus();
 }
 
 function _hideServerForm() {
   _serverFormMode = null;
-  document.getElementById('serverChoices').style.display = '';
+  document.getElementById('srvNameInput').disabled = false;
+  document.getElementById('serverList').style.display = '';
+  document.getElementById('serverActions').style.display = '';
   document.getElementById('serverForm').classList.remove('visible');
 }
 
@@ -2251,15 +2475,13 @@ function _doServerAction() {
 function initServerModal() {
   const L = LANG[lang];
   document.getElementById('serverModalSub').textContent = L.srvSelectTitle;
-  document.getElementById('plazaBtn').textContent = L.srvPlazaBtn;
   document.getElementById('createSrvBtn').textContent = L.srvCreateLabel;
-  document.getElementById('joinSrvBtn').textContent = L.srvJoinLabel;
+  document.getElementById('joinDirectBtn').textContent = lang === 'ko' ? '서버 이름으로 직접 입장' : 'Join by server name';
 
-  document.getElementById('plazaBtn').addEventListener('click', () => {
-    _enterServer('obliterate-room', LANG[lang].srvPlazaName);
-  });
+  renderServerList();
+
   document.getElementById('createSrvBtn').addEventListener('click', () => _showServerForm('create'));
-  document.getElementById('joinSrvBtn').addEventListener('click', () => _showServerForm('join'));
+  document.getElementById('joinDirectBtn').addEventListener('click', () => _showServerForm('join'));
   document.getElementById('srvCancelBtn').addEventListener('click', _hideServerForm);
   document.getElementById('srvConfirmBtn').addEventListener('click', _doServerAction);
   ['srvNameInput', 'srvPwInput'].forEach(id => {
@@ -2276,9 +2498,6 @@ initServerModal();
 /* ── SUPABASE INIT ── */
 function initSupabase(channelName) {
   const ch = channelName || window._channelName || 'obliterate-room';
-  if (!window._supabaseClient) {
-    window._supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  }
   const client = window._supabaseClient;
 
   const room = client.channel(ch, {
@@ -2340,6 +2559,6 @@ function initSupabase(channelName) {
 }
 </script>
 <script src="config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="if(window._pendingChannel){initSupabase(window._pendingChannel);window._pendingChannel=null;}else{window._supabaseReady=true;}"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="window._supabaseClient=window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY);window._supabaseReady=true;initRegistry();if(window._pendingChannel){initSupabase(window._pendingChannel);window._pendingChannel=null;}"></script>
 </body>
 </html>
