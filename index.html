@@ -1686,11 +1686,11 @@ document.addEventListener('keydown', e => {
     const idx = parseInt(e.key) - 1;
     mode = modeKeys[idx];
     document.querySelectorAll('.modeBtn').forEach((b, i) => b.classList.toggle('active', i === idx));
-    glyphs.forEach(g => g.kill());
+    destroyAll();
     if (window._room) {
       window._room.send({
         type: 'broadcast', event: 'destroy_all',
-        payload: { nickname: window._nickname, thanosMode: true }
+        payload: { nickname: window._nickname, thanosMode }
       });
     }
   }
