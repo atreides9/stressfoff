@@ -34,8 +34,14 @@ html, body {
   grid-template-columns: 1fr auto 1fr;
   align-items: flex-start;
   padding: clamp(10px, 2vw, 18px) clamp(14px, 3vw, 28px);
+}
+#topBar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
   background: linear-gradient(to bottom, rgba(7,7,13,0.95) 60%, transparent);
   pointer-events: none;
+  z-index: -1;
 }
 
 #topLeft {
@@ -74,7 +80,7 @@ html, body {
   border-radius: 20px;
   overflow: hidden;
   background: rgba(255,255,255,0.03);
-  pointer-events: all;
+  pointer-events: auto;
 }
 .langBtn {
   padding: 5px 14px;
@@ -99,7 +105,7 @@ html, body {
   background: rgba(30,30,50,0.6);
   cursor: pointer;
   position: relative;
-  pointer-events: all;
+  pointer-events: auto;
   transition: background 0.2s, border-color 0.2s;
   display: flex;
   align-items: center;
@@ -130,7 +136,7 @@ html.light #themeSwitchKnob {
 html.light, html.light body, html.light #app {
   background: #f0ede8;
 }
-html.light #topBar {
+html.light #topBar::before {
   background: linear-gradient(to bottom, rgba(240,237,232,0.97) 60%, transparent);
 }
 html.light #panel {
@@ -256,7 +262,7 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
 /* ── INFO ICON ── */
 #infoWrap {
   position: relative;
-  pointer-events: all;
+  pointer-events: auto;
 }
 #infoBtn {
   background: none;
@@ -514,6 +520,7 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
   display: flex;
   align-items: center;
   gap: 12px;
+  pointer-events: auto;
 }
 #onlineCount, #nickname {
   font-family: 'Courier New', monospace;
@@ -526,10 +533,11 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
 #nickname { pointer-events: none; }
 #onlineWrap {
   position: relative;
+  pointer-events: auto;
 }
 #onlineCount {
   cursor: pointer;
-  pointer-events: all;
+  pointer-events: auto;
   transition: color 0.15s;
 }
 #onlineCount:hover { color: rgba(255,255,255,0.65); }
@@ -603,7 +611,7 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
   transition: all 0.2s;
   white-space: nowrap;
   text-transform: uppercase;
-  pointer-events: all;
+  pointer-events: auto;
 }
 #thanosToggle:hover {
   border-color: rgba(150,100,255,0.45);
@@ -665,6 +673,182 @@ html.light .sticky-msg.mine:hover .sticky-delete-hint {
 .thanos-log-entry.visible {
   color: rgba(200,160,255,0.75);
 }
+
+/* ── SERVER BADGE ── */
+#currentServerBadge {
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  color: rgba(100,200,255,0.55);
+  letter-spacing: 1px;
+  padding: 3px 9px;
+  border: 1px solid rgba(100,200,255,0.18);
+  border-radius: 10px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+#currentServerBadge:hover {
+  color: rgba(140,220,255,0.9);
+  border-color: rgba(100,200,255,0.45);
+  background: rgba(60,160,255,0.07);
+}
+html.light #currentServerBadge {
+  color: rgba(0,120,200,0.7);
+  border-color: rgba(0,120,200,0.2);
+}
+html.light #currentServerBadge:hover {
+  color: rgba(0,100,200,0.9);
+  border-color: rgba(0,120,200,0.45);
+  background: rgba(0,120,200,0.06);
+}
+
+/* ── SERVER SELECTION MODAL ── */
+#serverModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(6px);
+}
+#serverModal.hidden { display: none; }
+#serverBox {
+  background: rgba(10,10,20,0.98);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 32px 32px 28px;
+  max-width: 380px;
+  width: 90%;
+  color: rgba(255,255,255,0.82);
+  font-family: 'Courier New', monospace;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+}
+#serverModalTitle {
+  font-size: 15px;
+  letter-spacing: 5px;
+  color: rgba(255,255,255,0.9);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+#serverModalSub {
+  font-size: 10px;
+  color: rgba(255,255,255,0.38);
+  letter-spacing: 1.2px;
+  margin-bottom: 22px;
+}
+#serverChoices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.server-choice-btn {
+  width: 100%;
+  padding: 11px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.72);
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.server-choice-btn:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.26);
+  color: #fff;
+}
+.server-choice-btn.plaza {
+  border-color: rgba(100,200,255,0.22);
+  color: rgba(140,215,255,0.82);
+}
+.server-choice-btn.plaza:hover {
+  background: rgba(60,160,255,0.08);
+  border-color: rgba(100,200,255,0.48);
+  color: rgba(180,235,255,1);
+}
+.server-choice-btn.create {
+  border-color: rgba(150,100,255,0.22);
+  color: rgba(180,140,255,0.82);
+}
+.server-choice-btn.create:hover {
+  background: rgba(110,50,240,0.1);
+  border-color: rgba(180,120,255,0.48);
+  color: rgba(220,190,255,1);
+}
+.server-choice-btn.join-srv {
+  border-color: rgba(80,220,140,0.18);
+  color: rgba(100,210,140,0.78);
+}
+.server-choice-btn.join-srv:hover {
+  background: rgba(40,180,100,0.07);
+  border-color: rgba(80,220,140,0.42);
+  color: rgba(140,255,180,1);
+}
+#serverForm { display: none; }
+#serverForm.visible { display: block; }
+.server-form-label {
+  font-size: 9px;
+  color: rgba(255,255,255,0.38);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.server-input {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  padding: 9px 13px;
+  outline: none;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.8px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+.server-input:focus { border-color: rgba(180,120,255,0.5); }
+.server-input::placeholder { color: rgba(255,255,255,0.2); }
+.server-form-btns { display: flex; gap: 8px; }
+.server-form-btn {
+  flex: 1;
+  padding: 9px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.65);
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.server-form-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.server-form-btn.primary {
+  border-color: rgba(150,100,255,0.35);
+  color: rgba(200,160,255,0.9);
+}
+.server-form-btn.primary:hover {
+  background: rgba(110,50,240,0.15);
+  border-color: rgba(180,120,255,0.6);
+  color: rgba(220,190,255,1);
+}
+.server-error {
+  font-size: 9px;
+  color: rgba(255,100,100,0.85);
+  letter-spacing: 0.6px;
+  margin-bottom: 10px;
+  display: none;
+}
+.server-error.visible { display: block; }
 
 /* ── INTRO MODAL ── */
 #introModal {
@@ -993,6 +1177,7 @@ html.light .colorBtn.active { border-color: rgba(0,0,0,0.7); }
   <div id="topBar">
     <div id="topLeft">
       <div id="title">Obliterate</div>
+      <span id="currentServerBadge"></span>
       <div id="topMeta">
         <div id="onlineWrap">
           <span id="onlineCount"></span>
@@ -1041,6 +1226,29 @@ html.light .colorBtn.active { border-color: rgba(0,0,0,0.7); }
   </div>
 </div>
 
+<!-- ── SERVER SELECTION MODAL ── -->
+<div id="serverModal">
+  <div id="serverBox">
+    <div id="serverModalTitle">OBLITERATE</div>
+    <div id="serverModalSub"></div>
+    <div id="serverChoices">
+      <button class="server-choice-btn plaza" id="plazaBtn"></button>
+      <button class="server-choice-btn create" id="createSrvBtn"></button>
+      <button class="server-choice-btn join-srv" id="joinSrvBtn"></button>
+    </div>
+    <div id="serverForm">
+      <div class="server-form-label" id="serverFormLabel"></div>
+      <div class="server-error" id="serverError"></div>
+      <input class="server-input" id="srvNameInput" autocomplete="off" spellcheck="false">
+      <input class="server-input" id="srvPwInput" type="password" autocomplete="off">
+      <div class="server-form-btns">
+        <button class="server-form-btn" id="srvCancelBtn"></button>
+        <button class="server-form-btn primary" id="srvConfirmBtn"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── INTRO MODAL ── -->
 <div id="introModal" class="hidden">
   <div id="introBox">
@@ -1080,6 +1288,20 @@ const LANG = {
     ],
     introStartBtn: '시작하기',
     tooltipContent: 'OBLITERATE\n스트레스 해소 앱\n\n글자를 소환하고 마우스로 파괴하세요\n\nCtrl+1  💥 폭발\nCtrl+2  🔥 연소\nCtrl+3  🌀 소멸\nCtrl+4  ❄  파쇄\n\n🔱 타노스 모드\n누구의 글자든 파괴 가능\n하루 3회 · ON 후 1분 지속',
+    srvSelectTitle: '서버를 선택하세요',
+    srvPlazaBtn: '🏛  광장 입장',
+    srvCreateLabel: '⚙  서버 만들기',
+    srvJoinLabel: '🔑  서버 입장',
+    srvPlazaName: '광장',
+    srvCreateFormLabel: '새 서버 만들기',
+    srvJoinFormLabel: '서버 입장',
+    srvNamePlaceholder: '서버 이름',
+    srvPwPlaceholder: '입장 비밀번호',
+    srvCancelBtn: '취소',
+    srvCreateBtn: '만들기',
+    srvJoinBtn: '입장',
+    srvErrNoName: '서버 이름을 입력하세요',
+    srvErrNoPw: '비밀번호를 입력하세요',
   },
   en: {
     modes: ['💥 Explode','🔥 Burn','🌀 Void','❄ Shatter'],
@@ -1106,6 +1328,20 @@ const LANG = {
     ],
     introStartBtn: 'Start',
     tooltipContent: 'OBLITERATE\nStress Relief App\n\nSpawn text and destroy it\nwith your cursor\n\nCtrl+1  💥 Explode\nCtrl+2  🔥 Burn\nCtrl+3  🌀 Void\nCtrl+4  ❄  Shatter\n\n🔱 Thanos Mode\nDestroy anyone\'s text\n3×/day · lasts 1 min',
+    srvSelectTitle: 'Choose a server',
+    srvPlazaBtn: '🏛  Enter Plaza',
+    srvCreateLabel: '⚙  Create Server',
+    srvJoinLabel: '🔑  Join Server',
+    srvPlazaName: 'Plaza',
+    srvCreateFormLabel: 'Create New Server',
+    srvJoinFormLabel: 'Join Server',
+    srvNamePlaceholder: 'Server name',
+    srvPwPlaceholder: 'Password',
+    srvCancelBtn: 'Cancel',
+    srvCreateBtn: 'Create',
+    srvJoinBtn: 'Join',
+    srvErrNoName: 'Enter a server name',
+    srvErrNoPw: 'Enter a password',
   }
 };
 
@@ -1929,16 +2165,123 @@ document.getElementById('introModal').addEventListener('click', e => {
   if (e.target === document.getElementById('introModal')) hideIntroModal();
 });
 
-// Show on first visit
-if (!sessionStorage.getItem('obliterate_intro_seen')) {
-  setTimeout(showIntroModal, 300);
+/* ── SERVER SELECTION ── */
+let _serverFormMode = null;
+
+function _hashStr(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(h, 33) ^ str.charCodeAt(i)) >>> 0;
+  return h.toString(36);
 }
 
-/* ── SUPABASE INIT ── */
-function initSupabase() {
-  const client = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+function _getServerChannel(name, pw) {
+  return 'obliterate-srv-' + _hashStr(name.trim().toLowerCase() + ':' + pw.trim());
+}
 
-  const room = client.channel('obliterate-room', {
+function _enterServer(channelName, displayName) {
+  const isSwitch = !!window._channelName;
+  window._channelName = channelName;
+  window._serverDisplayName = displayName;
+
+  const badge = document.getElementById('currentServerBadge');
+  if (badge) badge.textContent = displayName;
+
+  document.getElementById('serverModal').classList.add('hidden');
+
+  // 기존 채널 연결 해제 후 재연결
+  if (isSwitch && window._room) {
+    window._room.unsubscribe();
+    window._room = null;
+    // 캔버스 초기화
+    glyphs = [];
+    particles = [];
+    document.getElementById('stickyContainer').innerHTML = '';
+    _presenceNicks = [];
+    updateOnlineCount(0);
+  }
+
+  if (window._supabaseReady || typeof window.supabase !== 'undefined') {
+    initSupabase(channelName);
+  } else {
+    window._pendingChannel = channelName;
+  }
+
+  if (!isSwitch && !sessionStorage.getItem('obliterate_intro_seen')) {
+    setTimeout(showIntroModal, 300);
+  }
+}
+
+function reopenServerModal() {
+  _hideServerForm();
+  document.getElementById('serverModal').classList.remove('hidden');
+}
+
+function _showServerForm(mode) {
+  _serverFormMode = mode;
+  document.getElementById('serverChoices').style.display = 'none';
+  document.getElementById('serverForm').classList.add('visible');
+  const L = LANG[lang];
+  document.getElementById('serverFormLabel').textContent = mode === 'create' ? L.srvCreateFormLabel : L.srvJoinFormLabel;
+  document.getElementById('srvNameInput').placeholder = L.srvNamePlaceholder;
+  document.getElementById('srvPwInput').placeholder = L.srvPwPlaceholder;
+  document.getElementById('srvCancelBtn').textContent = L.srvCancelBtn;
+  document.getElementById('srvConfirmBtn').textContent = mode === 'create' ? L.srvCreateBtn : L.srvJoinBtn;
+  document.getElementById('serverError').classList.remove('visible');
+  document.getElementById('srvNameInput').value = '';
+  document.getElementById('srvPwInput').value = '';
+  document.getElementById('srvNameInput').focus();
+}
+
+function _hideServerForm() {
+  _serverFormMode = null;
+  document.getElementById('serverChoices').style.display = '';
+  document.getElementById('serverForm').classList.remove('visible');
+}
+
+function _doServerAction() {
+  const name = document.getElementById('srvNameInput').value.trim();
+  const pw = document.getElementById('srvPwInput').value.trim();
+  const errEl = document.getElementById('serverError');
+  const L = LANG[lang];
+  if (!name) { errEl.textContent = L.srvErrNoName; errEl.classList.add('visible'); return; }
+  if (!pw) { errEl.textContent = L.srvErrNoPw; errEl.classList.add('visible'); return; }
+  _enterServer(_getServerChannel(name, pw), name);
+}
+
+function initServerModal() {
+  const L = LANG[lang];
+  document.getElementById('serverModalSub').textContent = L.srvSelectTitle;
+  document.getElementById('plazaBtn').textContent = L.srvPlazaBtn;
+  document.getElementById('createSrvBtn').textContent = L.srvCreateLabel;
+  document.getElementById('joinSrvBtn').textContent = L.srvJoinLabel;
+
+  document.getElementById('plazaBtn').addEventListener('click', () => {
+    _enterServer('obliterate-room', LANG[lang].srvPlazaName);
+  });
+  document.getElementById('createSrvBtn').addEventListener('click', () => _showServerForm('create'));
+  document.getElementById('joinSrvBtn').addEventListener('click', () => _showServerForm('join'));
+  document.getElementById('srvCancelBtn').addEventListener('click', _hideServerForm);
+  document.getElementById('srvConfirmBtn').addEventListener('click', _doServerAction);
+  ['srvNameInput', 'srvPwInput'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') _doServerAction();
+    });
+  });
+
+  document.getElementById('currentServerBadge').addEventListener('click', reopenServerModal);
+}
+
+initServerModal();
+
+/* ── SUPABASE INIT ── */
+function initSupabase(channelName) {
+  const ch = channelName || window._channelName || 'obliterate-room';
+  if (!window._supabaseClient) {
+    window._supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+  }
+  const client = window._supabaseClient;
+
+  const room = client.channel(ch, {
     config: { broadcast: { self: false } }
   });
   window._room = room;
@@ -1997,6 +2340,6 @@ function initSupabase() {
 }
 </script>
 <script src="config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="initSupabase()"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="if(window._pendingChannel){initSupabase(window._pendingChannel);window._pendingChannel=null;}else{window._supabaseReady=true;}"></script>
 </body>
 </html>
