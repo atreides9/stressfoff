@@ -1670,8 +1670,9 @@ class Glyph {
     else if (mode==='burn') { this.vx=(Math.random()-.5)*4; this.vy=-(spd*2.0+Math.random()*8); }
     else if (mode==='void') {
       const dx=W/2-this.x, dy=H/2-this.y, dist=Math.sqrt(dx*dx+dy*dy)||1;
-      this.vx=(-dy/dist)*2.2; this.vy=(dx/dist)*2.2;
-      this._pull=0.04; this.rotV=(Math.random()-.5)*.3;
+      this.vx=(-dy/dist)*3 + (dx/dist)*1.5;
+      this.vy=(dx/dist)*3 + (dy/dist)*1.5;
+      this._bhDist=dist; this._pull=0.08; this.rotV=(Math.random()>.5?1:-1)*.4;
     }
     else { this.vx=Math.cos(a)*spd*1.6; this.vy=Math.sin(a)*spd*1.6; this.rotV=(Math.random()-.5)*.35; }
     const n = mode==='burn' ? 36 : 9;
@@ -1684,12 +1685,12 @@ class Glyph {
     } else if (this.dead) {
       if (mode==='void') {
         const dx=W/2-this.x, dy=H/2-this.y, dist=Math.sqrt(dx*dx+dy*dy)||1;
-        this._pull*=1.12;
+        this._pull*=1.15;
         this.vx+=(dx/dist)*this._pull; this.vy+=(dy/dist)*this._pull;
-        this.vx*=0.93; this.vy*=0.93;
-        this.scale*=0.91; this.rot+=this.rotV;
-        if (this.scale<0.35) this.alpha*=0.85;
-        if (this.scale<0.01) this.alive=false;
+        this.vx*=0.90; this.vy*=0.90;
+        this.scale*=0.86; this.rot+=this.rotV;
+        this.alpha = Math.min(this.alpha, this.scale*1.8);
+        if (this.scale<0.008) this.alive=false;
       }
       else if (mode==='burn') { this.alpha-=.022; this.vx*=.97; this.scale=Math.max(0,this.scale-.010); }
       else { this.vy+=.38; this.vx*=.98; this.alpha-=.02; this.rot+=this.rotV; }
